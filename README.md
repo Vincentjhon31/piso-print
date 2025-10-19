@@ -25,7 +25,7 @@
 
 ---
 
-## 🎯 Project Overview
+## 🎯 Project Overview 
 
 **Piso Print** is a coin-operated printing kiosk system that allows users to:
 - Connect to a Wi-Fi hotspot (ESP32)
