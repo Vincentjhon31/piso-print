@@ -144,43 +144,46 @@ This system is perfect for:
 
 | Component | Specification | Quantity | Estimated Price (PHP) |
 |-----------|--------------|----------|----------------------|
-| ESP32 Development Board | ESP32-WROOM-32 (CH340 USB) | 1 | ₱250-400 |
+| ESP32 Development Board | ESP32-WROOM-32 CH340 Type-C | 1 | ₱250-400 |
 | Orange Pi PC | H3 Quad-core, 1GB RAM | 1 | ₱1,500-2,000 |
-| MicroSD Card | 16GB Class 10 (for Orange Pi) | 1 | ₱200-300 |
-| Coin Acceptor | 3-coin type (₱1/₱5/₱10) | 1 | ₱800-1,200 |
-| USB Printer | Any USB-compatible printer | 1 | ₱3,000+ |
-| Power Supply | 5V 3A for Orange Pi | 1 | ₱200-300 |
-| Micro USB Cable | For ESP32 power | 1 | ₱50-100 |
-| Jumper Wires | Male-to-Female | 10 pcs | ₱50 |
-| Enclosure | Project box | 1 | ₱300-500 |
+| MicroSD Card | Bavin 32GB Class 10 | 1 | ₱300-400 |
+| Programmable Coin Acceptor | ₱1 coin type (pulse output) | 1 | ₱800-1,200 |
+| USB Printer | Canon Pixma G3000 (CUPS compatible) | 1 | ₱7,000-9,000 |
+| Power Supply (Orange Pi) | 5V 3A DC adapter | 1 | ₱200-300 |
+| Power Supply (Coin Acceptor) | 12V 1A DC adapter | 1 | ₱150-250 |
+| USB Cable (Type-C) | For ESP32 to Orange Pi Serial | 1 | ₱100-150 |
+| Jumper Wires | Male-to-Female (for coin acceptor) | 10 pcs | ₱50 |
+| Breadboard | For testing connections | 1 | ₱80-150 |
+| Enclosure | Project box (optional) | 1 | ₱300-500 |
 
-### Optional Components
+### Optional/Alternative Components
 
-| Component | Purpose | Price (PHP) |
-|-----------|---------|-------------|
-| Old PLDT Modem | Ethernet connectivity | Free (reuse) |
-| LCD Display 16x2 | Show credits/status | ₱150-250 |
-| Buzzer | Audio feedback | ₱20-50 |
-| LED Indicators | Status lights | ₱10-30 |
+| Component | Purpose | Notes |
+|-----------|---------|-------|
+| Old PLDT Wi-Fi Modem | Network connectivity | Not used (locked config) |
+| Arduino Uno | Alternative controller | Not required (ESP32 replaces) |
+| Phone USB Tethering | Internet for setup | Temporary during installation |
+| LCD Display 16x2 | Show credits/status | Future enhancement |
+| Buzzer | Audio feedback | Future enhancement |
+| LED Indicators | Status lights | Can use built-in ESP32 LED |
 
-**Total Estimated Cost: ₱6,500 - ₱8,500**
+**Total Estimated Cost: ₱10,500 - ₱13,500**
 
 ---
 
 ## 🔌 Hardware Setup & Wiring
 
 ### ESP32 Pin Connections
-
 ```
-ESP32 Pin Layout:
+ESP32 Type-C Pin Layout:
 ┌─────────────────────────────────────┐
-│  ESP32-WROOM-32 (CH340)             │
+│  ESP32-WROOM-32 CH340 (Type-C)      │
 │                                     │
 │  3V3  ●                         ● GND
 │  EN   ●                         ● GPIO23
 │  GPIO36●                        ● GPIO22
-│  GPIO39●                        ● TX0
-│  GPIO34●                        ● RX0
+│  GPIO39●                        ● TX0 (→ Orange Pi RX)
+│  GPIO34●                        ● RX0 (← Orange Pi TX)
 │  GPIO35●                        ● GPIO21
 │  GPIO32● ← Coin Pulse           ● GND
 │  GPIO33●                        ● GPIO19
@@ -200,76 +203,127 @@ ESP32 Pin Layout:
 ```
 
 ### Coin Acceptor Wiring
-
 ```
-Coin Acceptor → ESP32
+Programmable Coin Acceptor (₱1) → ESP32 & Power
 
-Red Wire    (VCC)    → 5V (ESP32)
-Black Wire  (GND)    → GND (ESP32)
+Red Wire    (+12V)   → 12V DC Power Supply (+)
+Black Wire  (GND)    → 12V DC Power Supply (-) & ESP32 GND (common ground)
 White Wire  (COIN)   → GPIO32 (ESP32)
 ```
 
 **Coin Acceptor Settings:**
-- ₱1 coin = 1 pulse
-- ₱5 coin = 5 pulses
-- ₱10 coin = 10 pulses
+- ₱1 coin = 1 pulse (programmable)
+- Pulse duration: ~100ms LOW signal
+- Default state: HIGH (pulled up)
 
 ### Orange Pi Connections
-
 ```
-Orange Pi PC:
-- Power: 5V/3A DC adapter
-- Ethernet: Connect to router/switch (optional)
-- USB: Connect printer via USB port
-- MicroSD: Insert Armbian OS card
+Orange Pi PC H3:
+- Power: 5V/3A DC adapter (DC barrel jack)
+- USB Serial: ESP32 Type-C cable → Orange Pi USB port
+- USB Printer: Canon Pixma G3000 → Orange Pi USB port
+- MicroSD: Bavin 32GB Class 10 card (Armbian OS)
+- Ethernet: Optional (can use phone tethering for initial setup)
+```
+
+### Canon Pixma G3000 Setup
+```
+Canon Pixma G3000 Printer:
+- Connection: USB cable to Orange Pi
+- Power: Standard AC power adapter
+- Driver: CUPS built-in driver or Canon official Linux driver
+- Features: Color printing, scanning (CUPS will use print only)
 ```
 
 ### Complete System Wiring Diagram
-
 ```
-                    ┌──────────────┐
-                    │  Coin Slot   │
-                    └──────┬───────┘
-                           │ (3 wires)
-                           │
-┌──────────────────────────▼───────────────────────┐
-│                    ESP32 CH340                    │
-│  GPIO32 ← Coin Pulse                             │
-│  GPIO27 → Status LED                             │
-│  5V/GND ← USB Power (5V 1A)                      │
-│                                                   │
-│  Wi-Fi: Hotspot Mode (192.168.4.1)              │
-└───────────────────┬───────────────────────────────┘
-                    │ HTTP over Wi-Fi/Ethernet
-                    │
-┌───────────────────▼───────────────────────────────┐
-│              Orange Pi PC (Armbian)               │
-│  Ethernet: 192.168.1.100 (static IP)             │
-│  Flask Server: Port 5000                          │
-│  CUPS: Port 631                                   │
-└───────────────────┬───────────────────────────────┘
-                    │ USB Cable
-                    │
-┌───────────────────▼───────────────────────────────┐
-│                USB Printer                        │
-│  (e.g., HP, Canon, Epson)                        │
-└───────────────────────────────────────────────────┘
+                    ┌──────────────────┐
+                    │  12V Power Supply│
+                    │    (1A for Coin) │
+                    └────────┬─────────┘
+                             │
+                    ┌────────▼──────────┐
+                    │  Coin Acceptor    │
+                    │  (₱1 Programmable)│
+                    └────┬──────────┬───┘
+                         │          │
+                    White│          │Black (GND)
+                         │          │
+┌────────────────────────▼──────────▼────────────────────┐
+│                    ESP32 CH340 Type-C                   │
+│                                                         │
+│  GPIO32 ← Coin Pulse (White wire)                      │
+│  GPIO27 → Status LED (built-in)                        │
+│  GND    ← Common Ground (Black wire)                   │
+│  TX0    → Orange Pi RX (Serial)                        │
+│  RX0    ← Orange Pi TX (Serial)                        │
+│  USB-C  ← 5V Power                                     │
+│                                                         │
+│  Wi-Fi: Hotspot Mode (192.168.4.1)                    │
+│  Serial: 115200 baud → Orange Pi                       │
+└────────────────────┬────────────────────────────────────┘
+                     │ USB Type-C Cable (Serial)
+                     │
+┌────────────────────▼────────────────────────────────────┐
+│              Orange Pi PC H3 (Armbian)                  │
+│                                                         │
+│  USB Port 1: ESP32 Serial (credits communication)      │
+│  USB Port 2: Canon Pixma G3000 Printer                 │
+│  MicroSD: Bavin 32GB (Armbian OS + Database)           │
+│  Ethernet: Optional (or phone USB tethering)           │
+│  DC Jack: 5V/3A Power Supply                           │
+│                                                         │
+│  Flask Server: Port 5000                                │
+│  CUPS: Port 631                                         │
+│  Database: SQLite (/home/pisoprint/pisoprint.db)       │
+└────────────────────┬────────────────────────────────────┘
+                     │ USB Cable
+                     │
+┌────────────────────▼────────────────────────────────────┐
+│            Canon Pixma G3000 Printer                    │
+│            (USB Connected, CUPS Managed)                │
+│                                                         │
+│  - Color/B&W printing                                   │
+│  - Paper: A4, Letter, Legal                            │
+│  - Resolution: Up to 4800x1200 dpi                     │
+└─────────────────────────────────────────────────────────┘
 ```
 
 ### Power Supply Setup
-
 ```
 Power Distribution:
 
-Wall Outlet (220V)
+Wall Outlet (220V AC)
     │
-    ├── USB Adapter (5V 1A) → ESP32 (Micro USB)
+    ├─── 12V 1A Adapter → Coin Acceptor
+    │                      │
+    │                      └─── GND → ESP32 GND (common ground)
     │
-    └── DC Adapter (5V 3A) → Orange Pi (DC Jack)
+    ├─── 5V 3A Adapter → Orange Pi DC Jack
+    │
+    └─── USB Charger 5V → ESP32 Type-C
+         (or powered via Orange Pi USB)
 
-Coin Acceptor Power:
-    - Powered from ESP32 5V pin
-    - Total current: ~100mA
+Note: All grounds must be connected together (common ground)
+      ESP32 GND ↔ Coin Acceptor GND ↔ Orange Pi GND
+```
+
+### Communication Protocol
+```
+ESP32 ↔ Orange Pi (USB Serial):
+- Baud Rate: 115200
+- Data Format: JSON over Serial
+- Example: {"session_id":"USER_123","credits":5}
+
+ESP32 ↔ User Device (Wi-Fi):
+- Mode: Access Point
+- SSID: PisoPrint_WiFi
+- IP: 192.168.4.1
+- Protocol: HTTP REST API
+
+Orange Pi ↔ Printer (USB):
+- Protocol: CUPS via USB
+- Driver: Canon Pixma G3000 PPD
 ```
 
 ---
