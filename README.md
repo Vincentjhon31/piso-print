@@ -6,7 +6,7 @@
 
 ## 📋 Table of Contents
 
-1. [Project Overview](#project-overview)
+1. [Project Overview](#-project-overview)
 2. [Features](#features)
 3. [System Architecture](#system-architecture)
 4. [Hardware Requirements](#hardware-requirements)
