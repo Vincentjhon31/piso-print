@@ -32,12 +32,14 @@ chmod +x install_packages.sh
 **Solutions:**
 
 ### Option 1: Fix SSL Certificates
+
 ```bash
 sudo apt-get install -y ca-certificates
 sudo update-ca-certificates
 ```
 
 ### Option 2: Download ZIP Instead
+
 ```bash
 # On your computer, download:
 # https://github.com/Vincentjhon31/piso-print/archive/refs/heads/main.zip
@@ -51,6 +53,7 @@ mv piso-print-main piso-print
 ```
 
 ### Option 3: Clone Without SSL Verification (Temporary)
+
 ```bash
 git config --global http.sslVerify false
 git clone https://github.com/Vincentjhon31/piso-print.git
@@ -83,12 +86,14 @@ pip install pycups
 **Solutions:**
 
 ### Option 1: Skip Failed Repositories
+
 ```bash
 sudo apt-get update --fix-missing
 sudo apt-get install -y python3 python3-pip python3-venv
 ```
 
 ### Option 2: Comment Out Problem Repos
+
 ```bash
 sudo nano /etc/apt/sources.list.d/armbian.list
 
@@ -100,6 +105,7 @@ sudo apt-get update
 ```
 
 ### Option 3: Use Force IPv4
+
 ```bash
 sudo apt-get update -o Acquire::ForceIPv4=true
 ```
@@ -342,14 +348,14 @@ tail -f /root/piso-print/logs/error.log
 
 ## 📞 Common Error Messages and Quick Fixes
 
-| Error | Quick Fix |
-|-------|-----------|
-| `ModuleNotFoundError: No module named 'flask'` | `pip install flask` |
-| `Permission denied` | `sudo chmod +x script.sh` |
-| `Address already in use` | `sudo killall python3` |
-| `Database is locked` | `sudo killall python3` |
-| `CUPS connection failed` | `sudo systemctl start cups` |
-| `Unable to access GitHub` | Download ZIP instead |
-| `SSL certificate problem` | `sudo update-ca-certificates` |
+| Error                                          | Quick Fix                     |
+| ---------------------------------------------- | ----------------------------- |
+| `ModuleNotFoundError: No module named 'flask'` | `pip install flask`           |
+| `Permission denied`                            | `sudo chmod +x script.sh`     |
+| `Address already in use`                       | `sudo killall python3`        |
+| `Database is locked`                           | `sudo killall python3`        |
+| `CUPS connection failed`                       | `sudo systemctl start cups`   |
+| `Unable to access GitHub`                      | Download ZIP instead          |
+| `SSL certificate problem`                      | `sudo update-ca-certificates` |
 
 ---

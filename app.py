@@ -411,12 +411,15 @@ def print_file():
         data = request.get_json()
         session_id = data.get('session_id')
         user_credits = data.get('credits', 0)
+        filename = data.get('filename', '')  # Get filename from ESP32
         
         if not session_id:
             return jsonify({
                 'success': False,
                 'message': 'No session ID provided'
             }), 400
+        
+        logger.info(f"Print request: Session={session_id}, Credits={user_credits}, File={filename}")
         
         # Get user from database
         user = get_or_create_user(session_id)
@@ -425,16 +428,29 @@ def print_file():
         # Get the latest uploaded file for this session
         db = get_db()
         cursor = db.cursor()
-        cursor.execute('''
-            SELECT * FROM files 
-            WHERE session_id = ? 
-            ORDER BY uploaded_at DESC 
-            LIMIT 1
-        ''', (session_id,))
+        
+        if filename:
+            # Use the specific filename if provided
+            cursor.execute('''
+                SELECT * FROM files 
+                WHERE session_id = ? AND filename = ?
+                ORDER BY uploaded_at DESC 
+                LIMIT 1
+            ''', (session_id, filename))
+        else:
+            # Fall back to latest file
+            cursor.execute('''
+                SELECT * FROM files 
+                WHERE session_id = ? 
+                ORDER BY uploaded_at DESC 
+                LIMIT 1
+            ''', (session_id,))
+        
         file_record = cursor.fetchone()
         
         if not file_record:
             db.close()
+            logger.warning(f"No file found for session {session_id}")
             return jsonify({
                 'success': False,
                 'message': 'No file uploaded yet'
@@ -444,9 +460,12 @@ def print_file():
         pages = file_record['pages']
         cost = pages * PRICE_PER_PAGE
         
+        logger.info(f"File found: {file_record['filename']} - {pages} pages - ₱{cost}")
+        
         # Check if user has enough credits (use ESP32's credit count)
         if user_credits < cost:
             db.close()
+            logger.warning(f"Insufficient credits: has ₱{user_credits}, needs ₱{cost}")
             return jsonify({
                 'success': False,
                 'message': f'Insufficient credits. Need ₱{cost}, have ₱{user_credits}'
@@ -604,6 +623,57 @@ def check_credits():
         return jsonify({
             'success': False,
             'message': str(e)
+        }), 500
+
+@app.route('/api/check_pages', methods=['POST'])
+def check_pages():
+    """Check page count for a file (ESP32 sends filename, we estimate pages)"""
+    try:
+        data = request.get_json()
+        filename = data.get('filename', '')
+        session_id = data.get('session_id', '')
+        
+        if not filename:
+            return jsonify({
+                'success': False,
+                'error': 'No filename provided'
+            }), 400
+        
+        logger.info(f"Page count request: {filename} (Session: {session_id})")
+        
+        # Estimate pages based on file extension
+        # Since we don't have the actual file content, we'll estimate
+        file_ext = filename.lower().split('.')[-1] if '.' in filename else ''
+        
+        estimated_pages = 1  # Default
+        
+        if file_ext == 'pdf':
+            # For PDF, estimate 3 pages (user can override later)
+            estimated_pages = 3
+        elif file_ext in ['doc', 'docx']:
+            # For Word docs, estimate 2 pages
+            estimated_pages = 2
+        elif file_ext in ['jpg', 'jpeg', 'png', 'gif', 'bmp']:
+            # Images are 1 page
+            estimated_pages = 1
+        else:
+            # Unknown type, assume 1 page
+            estimated_pages = 1
+        
+        logger.info(f"Estimated {estimated_pages} page(s) for {filename}")
+        
+        return jsonify({
+            'success': True,
+            'pages': estimated_pages,
+            'filename': filename,
+            'message': f'{estimated_pages} page(s) estimated'
+        })
+        
+    except Exception as e:
+        logger.error(f"Page check error: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
         }), 500
 
 @app.route('/api/status', methods=['GET'])

@@ -11,8 +11,12 @@
 const char* AP_SSID = "PisoPrint_WiFi_v2";
 const char* AP_PASS = ""; // Open network
 
+// WiFi Station Mode - Connect to your router (where Orange Pi is connected)
+const char* STA_SSID = "HomeUltera5G_E73DD4";      // Change this to your router's WiFi name
+const char* STA_PASS = "Ultera9wiid2";   // Change this to your router's password
+
 // Orange Pi Flask Server
-const char* FLASK_SERVER = "http://192.168.4.2:5000";
+const char* FLASK_SERVER = "http://192.168.22.2:5000";  // Orange Pi IP on your network
 
 // Pin Definitions
 const int COIN_PIN = 32;  // D32 - Coin acceptor (NO mode)
@@ -164,13 +168,38 @@ void setup() {
   // Coin acceptor interrupt (FALLING edge for NO mode)
   attachInterrupt(digitalPinToInterrupt(COIN_PIN), coinInserted, FALLING);
 
-  // Wi-Fi AP
-  WiFi.mode(WIFI_AP);
+  // Wi-Fi AP+STA Mode (Dual mode: Hotspot + Connect to router)
+  WiFi.mode(WIFI_AP_STA);  // Enable both AP and Station modes
+  
+  // Start Access Point for users
   WiFi.softAP(AP_SSID, AP_PASS);
-
   Serial.println("📶 Hotspot: " + String(AP_SSID));
-  Serial.print("🔗 IP: ");
+  Serial.print("🔗 Hotspot IP: ");
   Serial.println(WiFi.softAPIP());
+  
+  // Connect to router (where Orange Pi is)
+  Serial.print("🔌 Connecting to router: ");
+  Serial.println(STA_SSID);
+  WiFi.begin(STA_SSID, STA_PASS);
+  
+  int attempts = 0;
+  while (WiFi.status() != WL_CONNECTED && attempts < 20) {
+    delay(500);
+    Serial.print(".");
+    attempts++;
+  }
+  
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.println("\n✅ Connected to router!");
+    Serial.print("🌐 Station IP: ");
+    Serial.println(WiFi.localIP());
+    Serial.print("🖨️  Can reach Orange Pi at: ");
+    Serial.println(FLASK_SERVER);
+  } else {
+    Serial.println("\n⚠️  Router connection failed!");
+    Serial.println("   ESP32 will work in AP-only mode");
+    Serial.println("   Upload feature will not work");
+  }
 
   // DNS server
   dnsServer.start(53, "*", WiFi.softAPIP());
@@ -582,7 +611,7 @@ void handleRoot() {
       uploadBtn.innerHTML = '<div class="loading"></div>';
       showStatus('Uploading...', 'info');
 
-      fetch('http://192.168.4.2:5000/upload', {
+      fetch('/upload', {
         method: 'POST',
         body: formData
       })
@@ -667,15 +696,53 @@ void handleRoot() {
 
 void handleFileUpload() {
   HTTPUpload& upload = server.upload();
+  
   if (upload.status == UPLOAD_FILE_START) {
     uploadedFileName = upload.filename;
-    Serial.print("📤 Upload: ");
-    Serial.println(uploadedFileName);
+    Serial.println("\n📤 Upload: " + uploadedFileName);
   }
 }
 
 void handleUploadResponse() {
-  server.send(200, "application/json", "{\"success\":true}");
+  String clientIP = server.client().remoteIP().toString();
+  String sessionID = sessionIPs[clientIP];
+  
+  if (sessionID == "") {
+    server.send(400, "application/json", "{\"success\":false,\"error\":\"No session\"}");
+    return;
+  }
+  
+  userFiles[sessionID] = uploadedFileName;
+  
+  // Send filename to Orange Pi for page counting
+  HTTPClient http;
+  http.setTimeout(10000);
+  http.begin(String(FLASK_SERVER) + "/api/check_pages");
+  http.addHeader("Content-Type", "application/json");
+  
+  StaticJsonDocument<200> doc;
+  doc["filename"] = uploadedFileName;
+  doc["session_id"] = sessionID;
+  
+  String requestBody;
+  serializeJson(doc, requestBody);
+  
+  Serial.println("📡 Requesting page count from Orange Pi...");
+  int httpCode = http.POST(requestBody);
+  
+  if (httpCode == 200) {
+    String response = http.getString();
+    Serial.println("✅ Page count received: " + response);
+    server.send(200, "application/json", response);
+  } else {
+    Serial.println("⚠️ Orange Pi unreachable, using default 1 page");
+    Serial.print("   HTTP Code: ");
+    Serial.println(httpCode);
+    // Fallback to 1 page if Orange Pi is unreachable
+    server.send(200, "application/json", "{\"success\":true,\"pages\":1,\"warning\":\"Using default page count\"}");
+  }
+  
+  http.end();
 }
 
 void handleStatus() {
@@ -752,13 +819,29 @@ void handlePrint() {
     return;
   }
   
+  // Check if user has uploaded a file
+  String filename = userFiles[sessionID];
+  if (filename == "") {
+    server.send(400, "application/json", "{\"success\":false,\"message\":\"No file uploaded\"}");
+    return;
+  }
+  
+  Serial.println("\n📡 Sending print request to Orange Pi...");
+  Serial.print("   Session: ");
+  Serial.println(sessionID);
+  Serial.print("   File: ");
+  Serial.println(filename);
+  Serial.print("   Credits: ₱");
+  Serial.println(userCredits[sessionID]);
+  
   HTTPClient http;
   http.setTimeout(10000);
   http.begin(String(FLASK_SERVER) + "/print");
   http.addHeader("Content-Type", "application/json");
   
-  StaticJsonDocument<200> doc;
+  StaticJsonDocument<300> doc;
   doc["session_id"] = sessionID;
+  doc["filename"] = filename;
   doc["credits"] = userCredits[sessionID];
   
   String requestBody;
@@ -766,8 +849,14 @@ void handlePrint() {
   
   int httpCode = http.POST(requestBody);
   
+  Serial.print("   HTTP Response Code: ");
+  Serial.println(httpCode);
+  
   if (httpCode > 0) {
     String response = http.getString();
+    Serial.print("   Response: ");
+    Serial.println(response);
+    
     StaticJsonDocument<200> responseDoc;
     deserializeJson(responseDoc, response);
     
@@ -776,8 +865,6 @@ void handlePrint() {
       userCredits[sessionID] -= pagesDeducted;
       
       Serial.println("\n🖨️  PRINTING...");
-      Serial.print("   Session: ");
-      Serial.println(sessionID);
       Serial.print("   Pages: ");
       Serial.println(pagesDeducted);
       Serial.print("   Remaining: ₱");
@@ -795,6 +882,8 @@ void handlePrint() {
       server.send(200, "application/json", "{\"success\":true,\"message\":\"Printing...\"}");
     } else {
       String errorMsg = String(responseDoc["message"].as<const char*>());
+      Serial.print("❌ Print failed: ");
+      Serial.println(errorMsg);
       server.send(200, "application/json", "{\"success\":false,\"message\":\"" + errorMsg + "\"}");
       
       if (buzzerState == BUZZER_IDLE) {
@@ -804,7 +893,13 @@ void handlePrint() {
       }
     }
   } else {
-    server.send(500, "application/json", "{\"success\":false,\"message\":\"Connection error\"}");
+    Serial.println("❌ Connection error - Cannot reach Orange Pi");
+    Serial.println("   Check: ");
+    Serial.println("   1. Is Orange Pi running? (python3 app.py)");
+    Serial.println("   2. Is Orange Pi at 192.168.22.2?");
+    Serial.println("   3. Is ESP32 connected to router?");
+    
+    server.send(500, "application/json", "{\"success\":false,\"message\":\"Connection error - Check Orange Pi\"}");
     
     if (buzzerState == BUZZER_IDLE) {
       digitalWrite(BUZZER_PIN, HIGH);
