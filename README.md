@@ -25,15 +25,17 @@
 
 ---
 
-## 🎯 Project Overview 
+## 🎯 Project Overview
 
 **Piso Print** is a coin-operated printing kiosk system that allows users to:
+
 - Connect to a Wi-Fi hotspot (ESP32)
 - Upload documents via captive portal
 - Insert coins to purchase printing credits
 - Print documents automatically
 
 This system is perfect for:
+
 - Internet cafes
 - Libraries
 - Print shops
@@ -47,6 +49,7 @@ This system is perfect for:
 ## ✨ Features
 
 ### Core Features
+
 - ✅ **Captive Portal** - Auto-redirect users to upload page
 - ✅ **Wi-Fi Hotspot** - ESP32 acts as access point
 - ✅ **Coin Payment System** - ₱1/₱5/₱10 coin acceptor support
@@ -57,6 +60,7 @@ This system is perfect for:
 - ✅ **CUPS Integration** - Professional print management
 
 ### Advanced Features
+
 - 📊 Admin dashboard (coming soon)
 - 💳 QR payment support (future)
 - 📱 Mobile app (future)
@@ -142,30 +146,30 @@ This system is perfect for:
 
 ### Required Components
 
-| Component | Specification | Quantity | Estimated Price (PHP) |
-|-----------|--------------|----------|----------------------|
-| ESP32 Development Board | ESP32-WROOM-32 CH340 Type-C | 1 | ₱250-400 |
-| Orange Pi PC | H3 Quad-core, 1GB RAM | 1 | ₱1,500-2,000 |
-| MicroSD Card | Bavin 32GB Class 10 | 1 | ₱300-400 |
-| Programmable Coin Acceptor | ₱1 coin type (pulse output) | 1 | ₱800-1,200 |
-| USB Printer | Canon Pixma G3000 (CUPS compatible) | 1 | ₱7,000-9,000 |
-| Power Supply (Orange Pi) | 5V 3A DC adapter | 1 | ₱200-300 |
-| Power Supply (Coin Acceptor) | 12V 1A DC adapter | 1 | ₱150-250 |
-| USB Cable (Type-C) | For ESP32 to Orange Pi Serial | 1 | ₱100-150 |
-| Jumper Wires | Male-to-Female (for coin acceptor) | 10 pcs | ₱50 |
-| Breadboard | For testing connections | 1 | ₱80-150 |
-| Enclosure | Project box (optional) | 1 | ₱300-500 |
+| Component                    | Specification                       | Quantity | Estimated Price (PHP) |
+| ---------------------------- | ----------------------------------- | -------- | --------------------- |
+| ESP32 Development Board      | ESP32-WROOM-32 CH340 Type-C         | 1        | ₱250-400              |
+| Orange Pi PC                 | H3 Quad-core, 1GB RAM               | 1        | ₱1,500-2,000          |
+| MicroSD Card                 | Bavin 32GB Class 10                 | 1        | ₱300-400              |
+| Programmable Coin Acceptor   | ₱1 coin type (pulse output)         | 1        | ₱800-1,200            |
+| USB Printer                  | Canon Pixma G3000 (CUPS compatible) | 1        | ₱7,000-9,000          |
+| Power Supply (Orange Pi)     | 5V 3A DC adapter                    | 1        | ₱200-300              |
+| Power Supply (Coin Acceptor) | 12V 1A DC adapter                   | 1        | ₱150-250              |
+| USB Cable (Type-C)           | For ESP32 to Orange Pi Serial       | 1        | ₱100-150              |
+| Jumper Wires                 | Male-to-Female (for coin acceptor)  | 10 pcs   | ₱50                   |
+| Breadboard                   | For testing connections             | 1        | ₱80-150               |
+| Enclosure                    | Project box (optional)              | 1        | ₱300-500              |
 
 ### Optional/Alternative Components
 
-| Component | Purpose | Notes |
-|-----------|---------|-------|
-| Old PLDT Wi-Fi Modem | Network connectivity | Not used (locked config) |
-| Arduino Uno | Alternative controller | Not required (ESP32 replaces) |
-| Phone USB Tethering | Internet for setup | Temporary during installation |
-| LCD Display 16x2 | Show credits/status | Future enhancement |
-| Buzzer | Audio feedback | Future enhancement |
-| LED Indicators | Status lights | Can use built-in ESP32 LED |
+| Component            | Purpose                | Notes                         |
+| -------------------- | ---------------------- | ----------------------------- |
+| Old PLDT Wi-Fi Modem | Network connectivity   | Not used (locked config)      |
+| Arduino Uno          | Alternative controller | Not required (ESP32 replaces) |
+| Phone USB Tethering  | Internet for setup     | Temporary during installation |
+| LCD Display 16x2     | Show credits/status    | Future enhancement            |
+| Buzzer               | Audio feedback         | Future enhancement            |
+| LED Indicators       | Status lights          | Can use built-in ESP32 LED    |
 
 **Total Estimated Cost: ₱10,500 - ₱13,500**
 
@@ -174,6 +178,7 @@ This system is perfect for:
 ## 🔌 Hardware Setup & Wiring
 
 ### ESP32 Pin Connections
+
 ```
 ESP32 Type-C Pin Layout:
 ┌─────────────────────────────────────┐
@@ -203,6 +208,7 @@ ESP32 Type-C Pin Layout:
 ```
 
 ### Coin Acceptor Wiring
+
 ```
 Programmable Coin Acceptor (₱1) → ESP32 & Power
 
@@ -212,11 +218,13 @@ White Wire  (COIN)   → GPIO32 (ESP32)
 ```
 
 **Coin Acceptor Settings:**
+
 - ₱1 coin = 1 pulse (programmable)
 - Pulse duration: ~100ms LOW signal
 - Default state: HIGH (pulled up)
 
 ### Orange Pi Connections
+
 ```
 Orange Pi PC H3:
 - Power: 5V/3A DC adapter (DC barrel jack)
@@ -227,6 +235,7 @@ Orange Pi PC H3:
 ```
 
 ### Canon Pixma G3000 Setup
+
 ```
 Canon Pixma G3000 Printer:
 - Connection: USB cable to Orange Pi
@@ -236,6 +245,7 @@ Canon Pixma G3000 Printer:
 ```
 
 ### Complete System Wiring Diagram
+
 ```
                     ┌──────────────────┐
                     │  12V Power Supply│
@@ -290,6 +300,7 @@ Canon Pixma G3000 Printer:
 ```
 
 ### Power Supply Setup
+
 ```
 Power Distribution:
 
@@ -309,6 +320,7 @@ Note: All grounds must be connected together (common ground)
 ```
 
 ### Communication Protocol
+
 ```
 ESP32 ↔ Orange Pi (USB Serial):
 - Baud Rate: 115200
@@ -435,38 +447,38 @@ void IRAM_ATTR coinInserted() {
 // ============================================
 void setup() {
   Serial.begin(115200);
-  
+
   // Pin modes
   pinMode(COIN_PIN, INPUT_PULLUP);
   pinMode(LED_PIN, OUTPUT);
-  
+
   // Attach interrupt for coin detection
   attachInterrupt(digitalPinToInterrupt(COIN_PIN), coinInserted, FALLING);
-  
+
   // Create Wi-Fi Access Point
   WiFi.mode(WIFI_AP);
   WiFi.softAP(AP_SSID, AP_PASS);
-  
+
   Serial.println("Access Point Started");
   Serial.print("IP Address: ");
   Serial.println(WiFi.softAPIP());
-  
+
   // Start DNS server for captive portal
   dnsServer.start(53, "*", WiFi.softAPIP());
-  
+
   // Web server routes
   server.on("/", handleRoot);
   server.on("/upload", HTTP_POST, handleUploadResponse, handleFileUpload);
   server.on("/status", handleStatus);
   server.on("/print", handlePrint);
   server.onNotFound(handleRoot); // Redirect all to captive portal
-  
+
   server.begin();
   Serial.println("Web Server Started");
-  
+
   // Generate session ID
   currentSessionID = generateSessionID();
-  
+
   // LED blink to indicate ready
   blinkLED(3);
 }
@@ -477,22 +489,22 @@ void setup() {
 void loop() {
   dnsServer.processNextRequest();
   server.handleClient();
-  
+
   // Check for coin insertions
   if (coinPulses > 0) {
     noInterrupts();
     int pulses = coinPulses;
     coinPulses = 0;
     interrupts();
-    
+
     // Add credits (₱1 per pulse)
     userCredits += pulses;
     Serial.print("Credits: ₱");
     Serial.println(userCredits);
-    
+
     // Send credits to Orange Pi
     sendCreditsToServer(pulses);
-    
+
     // LED feedback
     blinkLED(1);
   }
@@ -631,12 +643,12 @@ void handleRoot() {
   <div class="container">
     <h1>🖨️ Piso Print</h1>
     <p class="subtitle">Upload • Insert Coins • Print</p>
-    
+
     <div class="credits">
       <h2>Your Credits</h2>
       <div class="amount" id="credits">₱<span id="creditAmount">0</span></div>
     </div>
-    
+
     <form id="uploadForm" enctype="multipart/form-data">
       <div class="upload-area" onclick="document.getElementById('fileInput').click()">
         <div class="upload-icon">📄</div>
@@ -648,7 +660,7 @@ void handleRoot() {
       <button type="button" class="btn btn-primary" id="uploadBtn" onclick="uploadFile()" disabled>Upload File</button>
       <button type="button" class="btn btn-primary" id="printBtn" onclick="printFile()" disabled>Print Now</button>
     </form>
-    
+
     <div class="status" id="status"></div>
   </div>
 
@@ -740,13 +752,13 @@ void handleRoot() {
 </body>
 </html>
   )rawliteral";
-  
+
   server.send(200, "text/html", html);
 }
 
 void handleFileUpload() {
   HTTPUpload& upload = server.upload();
-  
+
   if (upload.status == UPLOAD_FILE_START) {
     uploadedFileName = upload.filename;
     Serial.print("Upload Start: ");
@@ -759,7 +771,7 @@ void handleUploadResponse() {
 }
 
 void handleStatus() {
-  String json = "{\"credits\":" + String(userCredits) + 
+  String json = "{\"credits\":" + String(userCredits) +
                 ",\"session\":\"" + currentSessionID + "\"}";
   server.send(200, "application/json", json);
 }
@@ -769,24 +781,24 @@ void handlePrint() {
   HTTPClient http;
   http.begin(String(FLASK_SERVER) + "/print");
   http.addHeader("Content-Type", "application/json");
-  
+
   StaticJsonDocument<200> doc;
   doc["session_id"] = currentSessionID;
   doc["credits"] = userCredits;
-  
+
   String requestBody;
   serializeJson(doc, requestBody);
-  
+
   int httpCode = http.POST(requestBody);
   String response = http.getString();
-  
+
   http.end();
-  
+
   if (httpCode == 200) {
     // Parse response
     StaticJsonDocument<200> responseDoc;
     deserializeJson(responseDoc, response);
-    
+
     if (responseDoc["success"]) {
       int pagesDeducted = responseDoc["pages"];
       userCredits -= pagesDeducted;
@@ -810,18 +822,18 @@ void sendCreditsToServer(int amount) {
   HTTPClient http;
   http.begin(String(FLASK_SERVER) + "/api/credits");
   http.addHeader("Content-Type", "application/json");
-  
+
   StaticJsonDocument<200> doc;
   doc["session_id"] = currentSessionID;
   doc["amount"] = amount;
-  
+
   String requestBody;
   serializeJson(doc, requestBody);
-  
+
   int httpCode = http.POST(requestBody);
   Serial.print("Credit update response: ");
   Serial.println(httpCode);
-  
+
   http.end();
 }
 
@@ -862,20 +874,23 @@ void blinkLED(int times) {
 ### Step 1: Install Armbian OS
 
 1. **Download Armbian:**
+
    ```
    https://www.armbian.com/orange-pi-pc/
    Download: Armbian_*_Orangepipc_*_Ubuntu_*.img.xz
    ```
 
 2. **Flash to MicroSD Card:**
+
    ```bash
    # Linux/Mac
    sudo dd if=Armbian*.img of=/dev/sdX bs=4M status=progress
-   
+
    # Or use Balena Etcher (GUI): https://www.balena.io/etcher/
    ```
 
 3. **First Boot:**
+
    - Insert SD card into Orange Pi
    - Connect HDMI monitor + USB keyboard
    - Connect Ethernet cable (optional)
@@ -883,11 +898,12 @@ void blinkLED(int times) {
    - Wait for boot (~2 minutes)
 
 4. **Initial Setup:**
+
    ```
    Default login:
    Username: root
    Password: 1234
-   
+
    You'll be prompted to:
    - Change root password
    - Create a new user
@@ -901,6 +917,7 @@ sudo nano /etc/network/interfaces
 ```
 
 Add:
+
 ```
 auto eth0
 iface eth0 inet static
@@ -911,12 +928,14 @@ iface eth0 inet static
 ```
 
 Or use DHCP (dynamic):
+
 ```
 auto eth0
 iface eth0 inet dhcp
 ```
 
 Restart networking:
+
 ```bash
 sudo systemctl restart networking
 ```
@@ -967,6 +986,7 @@ sudo nano /etc/cups/cupsd.conf
 ```
 
 Change these lines:
+
 ```
 Listen localhost:631
 ↓ to ↓
@@ -984,6 +1004,7 @@ Listen 0.0.0.0:631
 ```
 
 Restart CUPS:
+
 ```bash
 sudo systemctl restart cups
 sudo systemctl enable cups
@@ -991,7 +1012,7 @@ sudo systemctl enable cups
 
 ### Step 7: Add Printer to CUPS
 
-```bash
+````bash
 # Connect your USB printer
 
 # List detected printers
@@ -1006,501 +1027,137 @@ lpoptions -d PisoPrinter
 
 # Test print
 echo "Test print from Piso Print System" | lp
-```
+````
 
 **Or use CUPS Web Interface:**
+
 1. Open browser: `http://192.168.1.100:631`
 2. Go to **Administration** → **Add Printer**
 3. Select your USB printer
 4. Follow the wizard
 
-### Step 8: Create Flask Application
+### Step 8: Setup Flask Application
 
-Create the main Flask server file:
+**Option A: Automated Setup (Recommended)**
+
+Use the provided setup script for automatic installation:
 
 ```bash
+# Transfer setup script to Orange Pi
+# Copy app.py, requirements.txt, and setup_orangepi.sh to /home/pisoprint/
+
+cd /home
+chmod +x setup_orangepi.sh
+sudo ./setup_orangepi.sh
+```
+
+This script will automatically:
+
+- Update system packages
+- Install Python, Flask, CUPS
+- Create virtual environment
+- Install all dependencies
+- Configure CUPS
+- Create systemd service
+
+**Option B: Manual Setup**
+
+1. **Copy the Flask application:**
+
+```bash
+# The complete app.py file is in the repository
+# Copy it to Orange Pi at /home/pisoprint/app.py
 cd /home/pisoprint
-nano app.py
+# File should contain the full implementation with:
+# - Session-based credit management (matches ESP32)
+# - Comprehensive logging system
+# - Enhanced error handling
+# - Multiple file format support
+# - CUPS integration with fallback
+# - SQLite database with 4 tables (users, files, transactions, print_jobs)
 ```
 
-**Flask Server Code (`app.py`):**
+2. **Install Python dependencies:**
 
-```python
-#!/usr/bin/env python3
-from flask import Flask, request, jsonify, send_from_directory
-from flask_cors import CORS
-import cups
-import sqlite3
-import os
-import hashlib
-from datetime import datetime
-from werkzeug.utils import secure_filename
-import PyPDF2
-from docx import Document
-from PIL import Image
-
-# ============================================
-# Configuration
-# ============================================
-app = Flask(__name__)
-CORS(app)
-
-UPLOAD_FOLDER = '/home/pisoprint/uploads'
-DATABASE = '/home/pisoprint/pisoprint.db'
-ALLOWED_EXTENSIONS = {'pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png', 'txt'}
-PRICE_PER_PAGE = 1  # ₱1 per page
-
-# Ensure upload folder exists
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB max file size
-
-# CUPS connection
-conn_cups = cups.Connection()
-
-# ============================================
-# Database Setup
-# ============================================
-def init_db():
-    """Initialize SQLite database with tables"""
-    conn = sqlite3.connect(DATABASE)
-    c = conn.cursor()
-    
-    # Users/Sessions table
-    c.execute('''CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        session_id TEXT UNIQUE NOT NULL,
-        credits INTEGER DEFAULT 0,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )''')
-    
-    # Files table
-    c.execute('''CREATE TABLE IF NOT EXISTS files (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        session_id TEXT NOT NULL,
-        filename TEXT NOT NULL,
-        original_filename TEXT NOT NULL,
-        file_path TEXT NOT NULL,
-        file_size INTEGER,
-        pages INTEGER,
-        uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (session_id) REFERENCES users(session_id)
-    )''')
-    
-    # Transactions table
-    c.execute('''CREATE TABLE IF NOT EXISTS transactions (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        session_id TEXT NOT NULL,
-        type TEXT NOT NULL,
-        amount INTEGER,
-        description TEXT,
-        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (session_id) REFERENCES users(session_id)
-    )''')
-    
-    # Print jobs table
-    c.execute('''CREATE TABLE IF NOT EXISTS print_jobs (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        session_id TEXT NOT NULL,
-        file_id INTEGER NOT NULL,
-        pages INTEGER,
-        cost INTEGER,
-        status TEXT DEFAULT 'pending',
-        cups_job_id INTEGER,
-        printed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (session_id) REFERENCES users(session_id),
-        FOREIGN KEY (file_id) REFERENCES files(id)
-    )''')
-    
-    conn.commit()
-    conn.close()
-
-# Initialize database on startup
-init_db()
-
-# ============================================
-# Helper Functions
-# ============================================
-def allowed_file(filename):
-    """Check if file extension is allowed"""
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-def get_db():
-    """Get database connection"""
-    conn = sqlite3.connect(DATABASE)
-    conn.row_factory = sqlite3.Row
-    return conn
-
-def get_or_create_user(session_id):
-    """Get user or create if doesn't exist"""
-    db = get_db()
-    cursor = db.cursor()
-    
-    cursor.execute('SELECT * FROM users WHERE session_id = ?', (session_id,))
-    user = cursor.fetchone()
-    
-    if not user:
-        cursor.execute('INSERT INTO users (session_id, credits) VALUES (?, 0)', (session_id,))
-        db.commit()
-        cursor.execute('SELECT * FROM users WHERE session_id = ?', (session_id,))
-        user = cursor.fetchone()
-    
-    db.close()
-    return dict(user)
-
-def count_pdf_pages(filepath):
-    """Count pages in PDF file"""
-    try:
-        with open(filepath, 'rb') as f:
-            pdf = PyPDF2.PdfReader(f)
-            return len(pdf.pages)
-    except Exception as e:
-        print(f"Error counting PDF pages: {e}")
-        return 1
-
-def count_docx_pages(filepath):
-    """Estimate pages in DOCX (rough estimate)"""
-    try:
-        doc = Document(filepath)
-        # Rough estimate: 500 words per page
-        word_count = sum(len(para.text.split()) for para in doc.paragraphs)
-        pages = max(1, word_count // 500)
-        return pages
-    except Exception as e:
-        print(f"Error counting DOCX pages: {e}")
-        return 1
-
-def count_image_pages(filepath):
-    """Images are always 1 page"""
-    return 1
-
-def count_file_pages(filepath, extension):
-    """Count pages based on file type"""
-    if extension == 'pdf':
-        return count_pdf_pages(filepath)
-    elif extension in ['doc', 'docx']:
-        return count_docx_pages(filepath)
-    elif extension in ['jpg', 'jpeg', 'png']:
-        return count_image_pages(filepath)
-    else:
-        return 1
-
-def log_transaction(session_id, trans_type, amount, description):
-    """Log transaction to database"""
-    db = get_db()
-    cursor = db.cursor()
-    cursor.execute('''INSERT INTO transactions (session_id, type, amount, description)
-                      VALUES (?, ?, ?, ?)''', (session_id, trans_type, amount, description))
-    db.commit()
-    db.close()
-
-# ============================================
-# API Routes
-# ============================================
-
-@app.route('/')
-def index():
-    """Home page"""
-    return jsonify({
-        'status': 'online',
-        'message': 'Piso Print Server Running',
-        'version': '1.0.0',
-        'endpoints': {
-            'upload': '/upload (POST)',
-            'print': '/print (POST)',
-            'credits': '/api/credits (POST)',
-            'status': '/api/status (GET)',
-            'history': '/api/history (GET)'
-        }
-    })
-
-@app.route('/upload', methods=['POST'])
-def upload_file():
-    """Handle file upload from ESP32"""
-    
-    # Check if file exists in request
-    if 'file' not in request.files:
-        return jsonify({'success': False, 'error': 'No file provided'}), 400
-    
-    file = request.files['file']
-    
-    if file.filename == '':
-        return jsonify({'success': False, 'error': 'No file selected'}), 400
-    
-    if not allowed_file(file.filename):
-        return jsonify({'success': False, 'error': 'File type not allowed'}), 400
-    
-    # Get session ID from form or generate new one
-    session_id = request.form.get('session_id', f'USER_{datetime.now().timestamp()}')
-    
-    # Ensure user exists
-    user = get_or_create_user(session_id)
-    
-    # Secure filename and save
-    original_filename = secure_filename(file.filename)
-    extension = original_filename.rsplit('.', 1)[1].lower()
-    
-    # Generate unique filename
-    file_hash = hashlib.md5(f"{session_id}{datetime.now().isoformat()}".encode()).hexdigest()
-    filename = f"{file_hash}.{extension}"
-    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-    
-    file.save(filepath)
-    file_size = os.path.getsize(filepath)
-    
-    # Count pages
-    pages = count_file_pages(filepath, extension)
-    cost = pages * PRICE_PER_PAGE
-    
-    # Save to database
-    db = get_db()
-    cursor = db.cursor()
-    cursor.execute('''INSERT INTO files 
-                      (session_id, filename, original_filename, file_path, file_size, pages)
-                      VALUES (?, ?, ?, ?, ?, ?)''',
-                   (session_id, filename, original_filename, filepath, file_size, pages))
-    file_id = cursor.lastrowid
-    db.commit()
-    db.close()
-    
-    # Log transaction
-    log_transaction(session_id, 'upload', 0, f'Uploaded {original_filename}')
-    
-    return jsonify({
-        'success': True,
-        'file_id': file_id,
-        'filename': original_filename,
-        'pages': pages,
-        'cost': cost,
-        'message': f'{pages} pages = ₱{cost}'
-    })
-
-@app.route('/print', methods=['POST'])
-def print_file():
-    """Handle print request from ESP32"""
-    
-    data = request.get_json()
-    session_id = data.get('session_id')
-    credits = data.get('credits', 0)
-    
-    if not session_id:
-        return jsonify({'success': False, 'message': 'Session ID required'}), 400
-    
-    # Get user
-    user = get_or_create_user(session_id)
-    
-    # Get latest uploaded file
-    db = get_db()
-    cursor = db.cursor()
-    cursor.execute('''SELECT * FROM files 
-                      WHERE session_id = ? 
-                      ORDER BY uploaded_at DESC LIMIT 1''', (session_id,))
-    file_record = cursor.fetchone()
-    
-    if not file_record:
-        db.close()
-        return jsonify({'success': False, 'message': 'No file uploaded'}), 400
-    
-    file_record = dict(file_record)
-    pages = file_record['pages']
-    cost = pages * PRICE_PER_PAGE
-    
-    # Check if user has enough credits
-    if credits < cost:
-        db.close()
-        return jsonify({
-            'success': False,
-            'message': f'Insufficient credits. Need ₱{cost}, have ₱{credits}'
-        }), 400
-    
-    # Print the file using CUPS
-    try:
-        printers = conn_cups.getPrinters()
-        if not printers:
-            db.close()
-            return jsonify({'success': False, 'message': 'No printer available'}), 500
-        
-        # Get default printer or first available
-        printer_name = list(printers.keys())[0]
-        
-        # Send print job
-        cups_job_id = conn_cups.printFile(
-            printer_name,
-            file_record['file_path'],
-            file_record['original_filename'],
-            {}
-        )
-        
-        # Update user credits
-        new_credits = credits - cost
-        cursor.execute('UPDATE users SET credits = ? WHERE session_id = ?',
-                      (new_credits, session_id))
-        
-        # Log print job
-        cursor.execute('''INSERT INTO print_jobs 
-                          (session_id, file_id, pages, cost, status, cups_job_id)
-                          VALUES (?, ?, ?, ?, 'printing', ?)''',
-                      (session_id, file_record['id'], pages, cost, cups_job_id))
-        
-        db.commit()
-        db.close()
-        
-        # Log transaction
-        log_transaction(session_id, 'print', -cost, 
-                       f'Printed {file_record["original_filename"]} ({pages} pages)')
-        
-        return jsonify({
-            'success': True,
-            'message': 'Printing started',
-            'pages': pages,
-            'cost': cost,
-            'remaining_credits': new_credits,
-            'job_id': cups_job_id
-        })
-        
-    except Exception as e:
-        db.close()
-        return jsonify({'success': False, 'message': f'Print error: {str(e)}'}), 500
-
-@app.route('/api/credits', methods=['POST'])
-def add_credits():
-    """Add credits when coins are inserted"""
-    
-    data = request.get_json()
-    session_id = data.get('session_id')
-    amount = data.get('amount', 0)
-    
-    if not session_id or amount <= 0:
-        return jsonify({'success': False, 'message': 'Invalid request'}), 400
-    
-    # Get or create user
-    user = get_or_create_user(session_id)
-    
-    # Update credits
-    db = get_db()
-    cursor = db.cursor()
-    cursor.execute('UPDATE users SET credits = credits + ? WHERE session_id = ?',
-                  (amount, session_id))
-    db.commit()
-    
-    # Get new balance
-    cursor.execute('SELECT credits FROM users WHERE session_id = ?', (session_id,))
-    new_balance = cursor.fetchone()['credits']
-    db.close()
-    
-    # Log transaction
-    log_transaction(session_id, 'credit', amount, f'Added ₱{amount} credits')
-    
-    return jsonify({
-        'success': True,
-        'credits': new_balance,
-        'added': amount
-    })
-
-@app.route('/api/check_credits', methods=['GET'])
-def check_credits():
-    """Check user credits"""
-    
-    session_id = request.args.get('session_id')
-    
-    if not session_id:
-        return jsonify({'success': False, 'message': 'Session ID required'}), 400
-    
-    user = get_or_create_user(session_id)
-    
-    return jsonify({
-        'success': True,
-        'session_id': session_id,
-        'credits': user['credits']
-    })
-
-@app.route('/api/status', methods=['GET'])
-def system_status():
-    """Get system status"""
-    
-    try:
-        printers = conn_cups.getPrinters()
-        printer_status = []
-        
-        for name, info in printers.items():
-            printer_status.append({
-                'name': name,
-                'state': info.get('printer-state-message', 'Unknown'),
-                'accepting_jobs': info.get('printer-is-accepting-jobs', False)
-            })
-        
-        # Get database stats
-        db = get_db()
-        cursor = db.cursor()
-        
-        cursor.execute('SELECT COUNT(*) as total FROM users')
-        total_users = cursor.fetchone()['total']
-        
-        cursor.execute('SELECT COUNT(*) as total FROM print_jobs')
-        total_jobs = cursor.fetchone()['total']
-        
-        cursor.execute('SELECT SUM(cost) as revenue FROM print_jobs WHERE status = "printing"')
-        total_revenue = cursor.fetchone()['revenue'] or 0
-        
-        db.close()
-        
-        return jsonify({
-            'success': True,
-            'printers': printer_status,
-            'stats': {
-                'total_users': total_users,
-                'total_jobs': total_jobs,
-                'total_revenue': total_revenue
-            }
-        })
-        
-    except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
-
-@app.route('/api/history', methods=['GET'])
-def get_history():
-    """Get print history"""
-    
-    session_id = request.args.get('session_id')
-    limit = request.args.get('limit', 10, type=int)
-    
-    db = get_db()
-    cursor = db.cursor()
-    
-    if session_id:
-        cursor.execute('''SELECT pj.*, f.original_filename 
-                          FROM print_jobs pj
-                          JOIN files f ON pj.file_id = f.id
-                          WHERE pj.session_id = ?
-                          ORDER BY pj.printed_at DESC
-                          LIMIT ?''', (session_id, limit))
-    else:
-        cursor.execute('''SELECT pj.*, f.original_filename 
-                          FROM print_jobs pj
-                          JOIN files f ON pj.file_id = f.id
-                          ORDER BY pj.printed_at DESC
-                          LIMIT ?''', (limit,))
-    
-    history = [dict(row) for row in cursor.fetchall()]
-    db.close()
-    
-    return jsonify({
-        'success': True,
-        'history': history
-    })
-
-# ============================================
-# Run Server
-# ============================================
-if __name__ == '__main__':
-    print("🖨️  Piso Print Server Starting...")
-    print(f"📁 Upload folder: {UPLOAD_FOLDER}")
-    print(f"💾 Database: {DATABASE}")
-    print("🌐 Server running on http://0.0.0.0:5000")
-    
-    app.run(host='0.0.0.0', port=5000, debug=True)
+```bash
+source venv/bin/activate
+pip install -r requirements.txt
 ```
+
+**Key Features of the Flask Server:**
+
+- ✅ **Session Management:** Per-user credits matching ESP32 implementation
+- ✅ **File Upload:** PDF, DOCX, JPG, PNG, TXT support with page counting
+- ✅ **CUPS Integration:** Direct printer communication with job queue
+- ✅ **Database:** SQLite with users, files, transactions, print_jobs tables
+- ✅ **API Endpoints:** /upload, /print, /api/credits, /api/status, /api/history
+- ✅ **Logging:** Comprehensive logging to stdout and systemd journal
+- ✅ **Security:** File validation, size limits, secure filenames
+
+**Database Schema:**
+
+The app automatically creates 4 tables:
+
+```sql
+-- users: Session IDs and credit balances
+CREATE TABLE users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id TEXT UNIQUE NOT NULL,
+    credits INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_activity TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- files: Uploaded file metadata
+CREATE TABLE files (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id TEXT NOT NULL,
+    filename TEXT NOT NULL,
+    original_name TEXT NOT NULL,
+    file_path TEXT NOT NULL,
+    file_size INTEGER,
+    pages INTEGER,
+    file_type TEXT,
+    uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (session_id) REFERENCES users(session_id)
+);
+
+-- transactions: Credit add/deduct logs
+CREATE TABLE transactions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id TEXT NOT NULL,
+    type TEXT NOT NULL,
+    amount INTEGER NOT NULL,
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (session_id) REFERENCES users(session_id)
+);
+
+-- print_jobs: Print history
+CREATE TABLE print_jobs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id TEXT NOT NULL,
+    file_id INTEGER NOT NULL,
+    pages INTEGER NOT NULL,
+    cost INTEGER NOT NULL,
+    status TEXT DEFAULT 'printing',
+    printed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (session_id) REFERENCES users(session_id),
+    FOREIGN KEY (file_id) REFERENCES files(id)
+);
+```
+
+**📄 Complete Flask Application:**
+
+The full Flask server implementation is available in `app.py`. It includes:
+
+- Session-based user management
+- Multi-format file upload (PDF, DOCX, images)
+- Automatic page counting algorithms
+- CUPS printer integration with fallback
+- SQLite database with 4 tables
+- Comprehensive error handling and logging
+- RESTful API with 6+ endpoints
 
 ### Step 9: Create Systemd Service
 
@@ -1553,7 +1210,29 @@ curl http://localhost:5000
 #   "message": "Piso Print Server Running",
 #   ...
 # }
+
+# Or use the automated test suite
+cd /home/pisoprint
+python3 test_server.py
 ```
+
+### Step 11: Testing
+
+Use the included test suite to validate all endpoints:
+
+```bash
+python3 test_server.py
+```
+
+**Tests Included:**
+
+- ✅ Server status check
+- ✅ System status endpoint
+- ✅ Add credits functionality
+- ✅ Check credits endpoint
+- ✅ File upload endpoint
+- ✅ Print endpoint
+- ✅ History retrieval
 
 ---
 
@@ -1562,6 +1241,7 @@ curl http://localhost:5000
 The system uses SQLite with 4 main tables:
 
 ### Table: `users`
+
 ```sql
 CREATE TABLE users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1572,6 +1252,7 @@ CREATE TABLE users (
 ```
 
 ### Table: `files`
+
 ```sql
 CREATE TABLE files (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1587,6 +1268,7 @@ CREATE TABLE files (
 ```
 
 ### Table: `transactions`
+
 ```sql
 CREATE TABLE transactions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1600,6 +1282,7 @@ CREATE TABLE transactions (
 ```
 
 ### Table: `print_jobs`
+
 ```sql
 CREATE TABLE print_jobs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1618,16 +1301,19 @@ CREATE TABLE print_jobs (
 ### Database Queries
 
 **View all users:**
+
 ```bash
 sqlite3 /home/pisoprint/pisoprint.db "SELECT * FROM users;"
 ```
 
 **View print history:**
+
 ```bash
 sqlite3 /home/pisoprint/pisoprint.db "SELECT * FROM print_jobs ORDER BY printed_at DESC LIMIT 10;"
 ```
 
 **Calculate total revenue:**
+
 ```bash
 sqlite3 /home/pisoprint/pisoprint.db "SELECT SUM(cost) FROM print_jobs WHERE status='printing';"
 ```
@@ -1765,6 +1451,7 @@ sqlite3 /home/pisoprint/pisoprint.db "SELECT SUM(cost) FROM print_jobs WHERE sta
 ```
 
 **Expected Result:**
+
 ```json
 {
   "success": true,
@@ -1783,6 +1470,7 @@ sqlite3 /home/pisoprint/pisoprint.db "SELECT SUM(cost) FROM print_jobs WHERE sta
 ```
 
 **Expected Serial Output:**
+
 ```
 Credits: ₱3
 Credit update response: 200
@@ -1836,6 +1524,7 @@ lpstat -o
 ```
 
 **Verify in database:**
+
 ```bash
 sqlite3 /home/pisoprint/pisoprint.db
 
@@ -1848,6 +1537,7 @@ SELECT * FROM transactions ORDER BY timestamp DESC LIMIT 5;
 ## 📡 API Documentation
 
 ### Base URL
+
 ```
 http://192.168.1.100:5000
 ```
@@ -1855,9 +1545,11 @@ http://192.168.1.100:5000
 ### Endpoints
 
 #### `GET /`
+
 **Description:** Server health check
 
 **Response:**
+
 ```json
 {
   "status": "online",
@@ -1869,9 +1561,11 @@ http://192.168.1.100:5000
 ---
 
 #### `POST /upload`
+
 **Description:** Upload file for printing
 
 **Request:**
+
 - Method: POST
 - Content-Type: multipart/form-data
 - Body:
@@ -1879,6 +1573,7 @@ http://192.168.1.100:5000
   - `session_id`: User session ID (optional)
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -1893,9 +1588,11 @@ http://192.168.1.100:5000
 ---
 
 #### `POST /print`
+
 **Description:** Trigger print job
 
 **Request:**
+
 ```json
 {
   "session_id": "USER_123456",
@@ -1904,6 +1601,7 @@ http://192.168.1.100:5000
 ```
 
 **Response (Success):**
+
 ```json
 {
   "success": true,
@@ -1916,6 +1614,7 @@ http://192.168.1.100:5000
 ```
 
 **Response (Insufficient Credits):**
+
 ```json
 {
   "success": false,
@@ -1926,9 +1625,11 @@ http://192.168.1.100:5000
 ---
 
 #### `POST /api/credits`
+
 **Description:** Add credits to user account
 
 **Request:**
+
 ```json
 {
   "session_id": "USER_123456",
@@ -1937,6 +1638,7 @@ http://192.168.1.100:5000
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -1948,17 +1650,21 @@ http://192.168.1.100:5000
 ---
 
 #### `GET /api/check_credits`
+
 **Description:** Check user credit balance
 
 **Parameters:**
+
 - `session_id` (query parameter)
 
 **Example:**
+
 ```
 GET /api/check_credits?session_id=USER_123456
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -1971,9 +1677,11 @@ GET /api/check_credits?session_id=USER_123456
 ---
 
 #### `GET /api/status`
+
 **Description:** Get system status and statistics
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -1995,18 +1703,22 @@ GET /api/check_credits?session_id=USER_123456
 ---
 
 #### `GET /api/history`
+
 **Description:** Get print history
 
 **Parameters:**
+
 - `session_id` (optional): Filter by user
 - `limit` (optional, default=10): Number of records
 
 **Example:**
+
 ```
 GET /api/history?session_id=USER_123456&limit=5
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -2031,7 +1743,9 @@ GET /api/history?session_id=USER_123456&limit=5
 ### ESP32 Issues
 
 #### Problem: ESP32 not creating hotspot
+
 **Solution:**
+
 ```cpp
 // Check Serial Monitor for errors
 // Verify WiFi.softAP() returns true
@@ -2044,7 +1758,9 @@ Serial.println(WiFi.softAPIP());
 ```
 
 #### Problem: Captive portal not redirecting
+
 **Solution:**
+
 ```cpp
 // Ensure DNS server is running
 dnsServer.start(53, "*", WiFi.softAPIP());
@@ -2057,7 +1773,9 @@ nslookup google.com 192.168.4.1
 ```
 
 #### Problem: Coin pulses not detected
+
 **Solution:**
+
 ```bash
 # Check wiring
 # Test with multimeter: White wire should pulse LOW when coin inserted
@@ -2072,7 +1790,9 @@ void IRAM_ATTR coinInserted() {
 ```
 
 #### Problem: HTTP requests failing
+
 **Solution:**
+
 ```cpp
 // Check Orange Pi IP is correct
 // Ping Orange Pi from ESP32:
@@ -2090,7 +1810,9 @@ if (client.connect("192.168.4.2", 5000)) {
 ### Orange Pi Issues
 
 #### Problem: Flask not starting
+
 **Solution:**
+
 ```bash
 # Check service status
 sudo systemctl status pisoprint.service
@@ -2108,7 +1830,9 @@ sudo netstat -tulpn | grep 5000
 ```
 
 #### Problem: CUPS not printing
+
 **Solution:**
+
 ```bash
 # Check printer status
 lpstat -p -d
@@ -2128,7 +1852,9 @@ echo "test" | lp -d PisoPrinter
 ```
 
 #### Problem: Printer not detected
+
 **Solution:**
+
 ```bash
 # List USB devices
 lsusb
@@ -2144,7 +1870,9 @@ sudo lpadmin -p PisoPrinter -E -v usb://YOUR/PRINTER/URI -m everywhere
 ```
 
 #### Problem: Permission denied errors
+
 **Solution:**
+
 ```bash
 # Fix file permissions
 sudo chown -R root:root /home/pisoprint
@@ -2158,7 +1886,9 @@ sudo usermod -a -G lpadmin root
 ```
 
 #### Problem: Database locked
+
 **Solution:**
+
 ```bash
 # Check if database is being accessed
 lsof /home/pisoprint/pisoprint.db
@@ -2178,7 +1908,9 @@ sudo systemctl restart pisoprint.service
 ### Network Issues
 
 #### Problem: ESP32 and Orange Pi can't communicate
+
 **Solution:**
+
 ```bash
 # From Orange Pi, ping ESP32:
 ping 192.168.4.1
@@ -2195,7 +1927,9 @@ WiFi.softAP(AP_SSID, AP_PASS);
 ```
 
 #### Problem: Captive portal not working on iOS
+
 **Solution:**
+
 ```cpp
 // iOS requires specific captive portal detection
 // Add these routes to ESP32:
@@ -2208,7 +1942,9 @@ server.on("/success.txt", handleRoot);
 ```
 
 #### Problem: Uploads failing
+
 **Solution:**
+
 ```bash
 # Check file size limit
 # In Flask app.py:
@@ -2227,7 +1963,9 @@ sudo chmod 777 /home/pisoprint/uploads/
 ### Hardware Issues
 
 #### Problem: Coin acceptor not working
+
 **Troubleshooting Steps:**
+
 ```bash
 1. Test coin acceptor voltage:
    - Red wire: Should have 5V
@@ -2252,7 +1990,9 @@ void loop() {
 ```
 
 #### Problem: Power issues
+
 **Solution:**
+
 ```bash
 # ESP32 power:
 - Minimum: 5V 500mA
@@ -2310,6 +2050,7 @@ pisoprint/
 ### File Contents
 
 #### `requirements.txt`
+
 ```txt
 flask==3.0.0
 flask-cors==4.0.0
@@ -2321,6 +2062,7 @@ werkzeug==3.0.1
 ```
 
 #### `.gitignore`
+
 ```
 # Python
 __pycache__/
@@ -2356,6 +2098,7 @@ Thumbs.db
 ### Phase 1: Basic Improvements (1-2 weeks)
 
 #### 1.1 LCD Display
+
 ```cpp
 // Add 16x2 LCD to show status
 #include <LiquidCrystal_I2C.h>
@@ -2375,6 +2118,7 @@ displayStatus("Insert Coins", "Need: P5");
 ```
 
 #### 1.2 Multiple Printers
+
 ```python
 # Flask: Add printer selection
 @app.route('/printers', methods=['GET'])
@@ -2395,6 +2139,7 @@ def print_file():
 ```
 
 #### 1.3 Print Preview
+
 ```python
 # Convert PDF to images for preview
 from pdf2image import convert_from_path
@@ -2412,6 +2157,7 @@ def preview_file(file_id):
 ### Phase 2: Payment Integration (2-4 weeks)
 
 #### 2.1 QR Code Payments (GCash/Maya)
+
 ```python
 # Install: pip install qrcode paymongo
 
@@ -2421,17 +2167,17 @@ from paymongo import PayMongo
 @app.route('/payment/qr', methods=['POST'])
 def create_qr_payment():
     amount = request.json.get('amount')
-    
+
     # Create PayMongo payment intent
     payment = PayMongo.create_payment_intent(
         amount=amount * 100,  # Convert to centavos
         currency='PHP',
         description='Piso Print Payment'
     )
-    
+
     # Generate QR code
     qr = qrcode.make(payment['attributes']['payment_url'])
-    
+
     return jsonify({
         'qr_image': qr_to_base64(qr),
         'payment_id': payment['id']
@@ -2439,6 +2185,7 @@ def create_qr_payment():
 ```
 
 #### 2.2 Bill Acceptor Support
+
 ```cpp
 // ESP32: Add bill acceptor on different GPIO
 const int BILL_PIN = 33;
@@ -2456,6 +2203,7 @@ void IRAM_ATTR billInserted() {
 ### Phase 3: Web Dashboard (3-4 weeks)
 
 #### 3.1 Admin Panel
+
 ```python
 # Flask: Add admin routes
 from flask import render_template
@@ -2467,7 +2215,7 @@ def admin_dashboard():
 @app.route('/admin/stats')
 def admin_stats():
     db = get_db()
-    
+
     # Daily revenue
     daily = db.execute('''
         SELECT DATE(printed_at) as date, SUM(cost) as revenue
@@ -2476,7 +2224,7 @@ def admin_stats():
         ORDER BY date DESC
         LIMIT 30
     ''').fetchall()
-    
+
     # Popular files
     popular = db.execute('''
         SELECT original_filename, COUNT(*) as prints
@@ -2486,7 +2234,7 @@ def admin_stats():
         ORDER BY prints DESC
         LIMIT 10
     ''').fetchall()
-    
+
     return jsonify({
         'daily_revenue': [dict(row) for row in daily],
         'popular_files': [dict(row) for row in popular]
@@ -2494,20 +2242,21 @@ def admin_stats():
 ```
 
 #### 3.2 React Frontend
+
 ```jsx
 // Create React admin dashboard
-import React, { useEffect, useState } from 'react';
-import { LineChart, Line, XAxis, YAxis } from 'recharts';
+import React, { useEffect, useState } from "react";
+import { LineChart, Line, XAxis, YAxis } from "recharts";
 
 function AdminDashboard() {
   const [stats, setStats] = useState(null);
-  
+
   useEffect(() => {
-    fetch('/admin/stats')
-      .then(r => r.json())
+    fetch("/admin/stats")
+      .then((r) => r.json())
       .then(setStats);
   }, []);
-  
+
   return (
     <div className="dashboard">
       <h1>Piso Print Admin</h1>
@@ -2526,6 +2275,7 @@ function AdminDashboard() {
 ### Phase 4: Cloud Integration (4-6 weeks)
 
 #### 4.1 Remote Monitoring
+
 ```python
 # Add Firebase or AWS IoT integration
 import firebase_admin
@@ -2535,31 +2285,32 @@ def sync_to_cloud():
     # Upload daily stats to cloud
     db = get_db()
     stats = get_daily_stats()
-    
+
     firebase_admin.db.reference('/stats').push(stats)
-    
+
     return jsonify({'success': True})
 ```
 
 #### 4.2 Mobile App
+
 ```javascript
 // React Native app for users
-import React from 'react';
-import { View, Text, Button } from 'react-native';
+import React from "react";
+import { View, Text, Button } from "react-native";
 
 function PrintScreen() {
   const uploadFile = async (file) => {
     const formData = new FormData();
-    formData.append('file', file);
-    
-    const response = await fetch('http://192.168.1.100:5000/upload', {
-      method: 'POST',
-      body: formData
+    formData.append("file", file);
+
+    const response = await fetch("http://192.168.1.100:5000/upload", {
+      method: "POST",
+      body: formData,
     });
-    
+
     return response.json();
   };
-  
+
   return (
     <View>
       <Text>Piso Print</Text>
@@ -2574,6 +2325,7 @@ function PrintScreen() {
 ### Phase 5: Advanced Features (6+ weeks)
 
 #### 5.1 Double-Sided Printing
+
 ```python
 # CUPS: Enable duplex printing
 @app.route('/print', methods=['POST'])
@@ -2583,7 +2335,7 @@ def print_file():
         'media': 'A4',
         'print-color-mode': 'monochrome'
     }
-    
+
     cups_job_id = conn_cups.printFile(
         printer_name,
         filepath,
@@ -2593,6 +2345,7 @@ def print_file():
 ```
 
 #### 5.2 Print Job Scheduling
+
 ```python
 from apscheduler.schedulers.background import BackgroundScheduler
 
@@ -2602,18 +2355,19 @@ scheduler = BackgroundScheduler()
 def schedule_print():
     data = request.json
     scheduled_time = data['scheduled_time']
-    
+
     scheduler.add_job(
         func=print_document,
         trigger='date',
         run_date=scheduled_time,
         args=[data['file_id']]
     )
-    
+
     return jsonify({'success': True})
 ```
 
 #### 5.3 Membership System
+
 ```sql
 -- Add membership table
 CREATE TABLE memberships (
@@ -2626,6 +2380,7 @@ CREATE TABLE memberships (
 ```
 
 #### 5.4 Print Templates
+
 ```python
 # Predefined templates (certificates, forms, etc.)
 @app.route('/templates')
@@ -2643,6 +2398,7 @@ def list_templates():
 ## 📊 Performance Optimization
 
 ### ESP32 Optimization
+
 ```cpp
 // Reduce memory usage
 #define MAX_CLIENTS 4  // Limit simultaneous connections
@@ -2659,6 +2415,7 @@ WiFi.setSleep(false);  // Disable sleep
 ```
 
 ### Orange Pi Optimization
+
 ```bash
 # Use Gunicorn for production
 pip install gunicorn
@@ -2674,11 +2431,12 @@ sudo nano /etc/nginx/sites-available/pisoprint
 ```
 
 Nginx config:
+
 ```nginx
 server {
     listen 80;
     server_name pisoprint.local;
-    
+
     location / {
         proxy_pass http://127.0.0.1:5000;
         proxy_set_header Host $host;
@@ -2692,6 +2450,7 @@ server {
 ## 🔐 Security Considerations
 
 ### ESP32 Security
+
 ```cpp
 // Add password to Wi-Fi (optional)
 const char* AP_PASS = "print1234";
@@ -2707,6 +2466,7 @@ if (millis() - lastUpload < UPLOAD_COOLDOWN) {
 ```
 
 ### Flask Security
+
 ```python
 # Add API key authentication
 API_KEY = "your_secret_key_here"
@@ -2803,11 +2563,13 @@ We welcome contributions! Here's how:
 ## 📸 Screenshots
 
 ### User Interface
+
 ```
 [Captive Portal]  [Upload Screen]  [Credit Display]  [Printing Status]
 ```
 
 ### Admin Dashboard
+
 ```
 [Revenue Chart]   [Print History]  [System Status]   [User Analytics]
 ```
