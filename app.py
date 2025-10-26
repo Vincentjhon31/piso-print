@@ -5,19 +5,54 @@ Runs on Orange Pi PC H3 with Armbian OS
 Handles file uploads, printing, and credit management
 """
 
-from flask import Flask, request, jsonify, send_from_directory
-from flask_cors import CORS
-import cups
+# Import required modules with error handling
+try:
+    from flask import Flask, request, jsonify, send_from_directory
+    from flask_cors import CORS
+    from werkzeug.utils import secure_filename
+except ImportError as e:
+    print("❌ Error: Flask is not installed!")
+    print("📦 Please install required packages:")
+    print("   pip install flask flask-cors werkzeug")
+    print(f"\nDetails: {e}")
+    exit(1)
+
 import sqlite3
 import os
 import hashlib
 from datetime import datetime
-from werkzeug.utils import secure_filename
-import PyPDF2
-from docx import Document
-from PIL import Image
 import logging
 import subprocess
+
+# Optional imports - gracefully handle if not available
+try:
+    import cups
+    CUPS_AVAILABLE = True
+except ImportError:
+    CUPS_AVAILABLE = False
+    cups = None
+    print("⚠️  Warning: pycups not available - printer functionality limited")
+
+try:
+    import PyPDF2
+    PYPDF2_AVAILABLE = True
+except ImportError:
+    PYPDF2_AVAILABLE = False
+    print("⚠️  Warning: PyPDF2 not available - PDF page counting disabled")
+
+try:
+    from docx import Document
+    DOCX_AVAILABLE = True
+except ImportError:
+    DOCX_AVAILABLE = False
+    print("⚠️  Warning: python-docx not available - DOCX support disabled")
+
+try:
+    from PIL import Image
+    PIL_AVAILABLE = True
+except ImportError:
+    PIL_AVAILABLE = False
+    print("⚠️  Warning: Pillow not available - image support limited")
 
 # ============================================
 # Configuration
@@ -119,13 +154,17 @@ init_db()
 # ============================================
 # CUPS Connection
 # ============================================
-try:
-    conn_cups = cups.Connection()
-    printers = conn_cups.getPrinters()
-    logger.info(f"CUPS connected. Available printers: {list(printers.keys())}")
-except Exception as e:
-    logger.error(f"CUPS connection failed: {e}")
+if CUPS_AVAILABLE:
+    try:
+        conn_cups = cups.Connection()
+        printers = conn_cups.getPrinters()
+        logger.info(f"CUPS connected. Available printers: {list(printers.keys())}")
+    except Exception as e:
+        logger.error(f"CUPS connection failed: {e}")
+        conn_cups = None
+else:
     conn_cups = None
+    logger.warning("CUPS not available - printer functionality disabled")
 
 # ============================================
 # Helper Functions
@@ -163,6 +202,10 @@ def get_or_create_user(session_id):
 
 def count_pdf_pages(filepath):
     """Count pages in PDF file"""
+    if not PYPDF2_AVAILABLE:
+        logger.warning("PyPDF2 not available, returning 1 page")
+        return 1
+    
     try:
         with open(filepath, 'rb') as file:
             pdf_reader = PyPDF2.PdfReader(file)
@@ -173,6 +216,10 @@ def count_pdf_pages(filepath):
 
 def count_docx_pages(filepath):
     """Estimate pages in DOCX (rough estimate based on word count)"""
+    if not DOCX_AVAILABLE:
+        logger.warning("python-docx not available, returning 1 page")
+        return 1
+    
     try:
         doc = Document(filepath)
         total_words = sum(len(paragraph.text.split()) for paragraph in doc.paragraphs)
