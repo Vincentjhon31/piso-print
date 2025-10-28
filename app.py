@@ -490,6 +490,30 @@ def upload_stream():
         
         logger.info(f"File size on disk: {file_size} bytes")
         
+        # ✅ DOCX to PDF conversion (if needed)
+        if file_ext.lower() in ['doc', 'docx']:
+            logger.info(f"DOCX file detected, converting to PDF...")
+            pdf_path = convert_docx_to_pdf(filepath)
+            
+            if pdf_path and os.path.exists(pdf_path):
+                # Success! Update to use PDF
+                logger.info(f"✅ Conversion successful: {pdf_path}")
+                
+                # Delete original DOCX
+                os.remove(filepath)
+                
+                # Update variables to PDF
+                filepath = pdf_path
+                filename = os.path.basename(pdf_path)
+                file_ext = 'pdf'
+                file_size = os.path.getsize(filepath)
+                
+                logger.info(f"Now using converted PDF: {filename} ({file_size} bytes)")
+            else:
+                # Conversion failed, keep DOCX but warn
+                logger.warning(f"⚠️  DOCX to PDF conversion failed, keeping original DOCX")
+                logger.warning(f"   Make sure LibreOffice is installed: sudo apt install libreoffice-writer")
+        
         # Count pages
         pages = count_file_pages(filepath, file_ext)
         cost = pages * PRICE_PER_PAGE
