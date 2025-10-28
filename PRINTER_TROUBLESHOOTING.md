@@ -1,6 +1,7 @@
 # Printer Not Printing - Troubleshooting Guide
 
 ## Current Status
+
 ✅ File uploaded successfully  
 ✅ Flask receives print request  
 ✅ CUPS job created (Job ID: 2)  
@@ -25,11 +26,13 @@ This will show you the printer status and any errors.
 ### Issue A: Printer is Paused or Disabled
 
 **Check:**
+
 ```bash
 lpstat -p PisoPrinter
 ```
 
 **If you see "disabled" or "paused":**
+
 ```bash
 cupsenable PisoPrinter
 cupsaccept PisoPrinter
@@ -38,16 +41,19 @@ cupsaccept PisoPrinter
 ### Issue B: USB Cable Disconnected
 
 **Check:**
+
 ```bash
 lsusb | grep -i canon
 ```
 
 **Should see something like:**
+
 ```
 Bus 001 Device 004: ID 04a9:xxxx Canon, Inc. G3000 series
 ```
 
 **If NOT visible:**
+
 - Check USB cable connection
 - Try different USB port
 - Power cycle the printer
@@ -92,6 +98,7 @@ lp -d PisoPrinter /usr/share/cups/data/testprint
 ```
 
 **If test print works but app doesn't:**
+
 - Check file permissions in `/home/orangepi/piso-print/uploads/`
 - Verify Flask has access to the files
 
@@ -106,6 +113,7 @@ Then try printing from the app again and watch for errors in real-time.
 ### Issue F: Check Flask Logs
 
 While Flask is running:
+
 ```bash
 # In the Flask terminal, you should see:
 # INFO - Print job created: ID=2, Printer=PisoPrinter, File=/path/to/file.pdf
@@ -141,10 +149,12 @@ lp -d PisoPrinter ~/piso-print/uploads/SAMPLESmall_20251026_221046.pdf
 ```
 
 **If manual print works:**
+
 - Problem is in Flask/CUPS connection
 - Check if Flask user has printer permissions
 
 **If manual print fails:**
+
 - Problem is with CUPS/printer setup
 - Follow Issue C above to reinstall printer with proper driver
 
@@ -171,6 +181,7 @@ EOF
 ```
 
 Expected output:
+
 ```
 Available printers: ['PisoPrinter']
 Default printer: PisoPrinter
@@ -225,12 +236,14 @@ python3 app.py
 Access CUPS admin panel from your computer:
 
 1. On Orange Pi:
+
 ```bash
 sudo cupsctl --remote-admin --remote-any --share-printers
 sudo systemctl restart cups
 ```
 
 2. On your computer, open browser:
+
 ```
 http://192.168.22.2:631
 ```

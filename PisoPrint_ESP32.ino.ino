@@ -12,7 +12,7 @@ const char* AP_SSID = "PisoPrint_WiFi_v2";
 const char* AP_PASS = ""; // Open network
 
 // WiFi Station Mode - Connect to your router (where Orange Pi is connected)
-const char* STA_SSID = "HomeUltera5G_E73DD4";      // Change this to your router's WiFi name
+const char* STA_SSID = "HomeUltera_E73DD4";      // Change this to your router's WiFi name
 const char* STA_PASS = "Ultera9wiid2";   // Change this to your router's password
 
 // Orange Pi Flask Server
@@ -33,9 +33,10 @@ volatile int pulseCount = 0;
 volatile unsigned long lastPulseTime = 0;
 
 // Timing adjusted for MEDIUM speed + NO mode
-const unsigned long COIN_TIMEOUT = 400;      // 400ms timeout (medium speed)
-const unsigned long DEBOUNCE_TIME = 30;      // 30ms debounce (tighter for NO mode)
+const unsigned long COIN_TIMEOUT = 500;      // 500ms timeout (medium speed)
+const unsigned long DEBOUNCE_TIME = 50;      // 50ms debounce (filter noise)
 const unsigned long MIN_PULSE_WIDTH = 20;    // Minimum 20ms pulse width
+const unsigned long NOISE_FILTER_TIME = 2000; // Ignore pulses in first 2 seconds after startup
 
 // ============================================
 // Session Management - Per-User Credits
@@ -43,8 +44,10 @@ const unsigned long MIN_PULSE_WIDTH = 20;    // Minimum 20ms pulse width
 volatile int pendingCredits = 0;  // Credits not yet claimed by any user
 std::map<String, int> userCredits;  // SessionID → Credits
 std::map<String, String> sessionIPs;  // IP → SessionID
-std::map<String, String> userFiles;  // SessionID → Uploaded filename
+std::map<String, String> userFiles;  // SessionID → Uploaded filename (NEW!)
+std::map<String, int> userFileIDs;  // SessionID → File ID from Orange Pi
 String uploadedFileName = "";  // Current uploaded file name
+
 
 // Buzzer state machine
 enum BuzzerState {
@@ -64,6 +67,7 @@ const unsigned long BUZZER_HOLD_DURATION = 500;
 // Coin detection state
 bool coinDetectionActive = false;
 unsigned long coinDetectionStartTime = 0;
+unsigned long systemStartTime = 0;  // Track when system started
 
 // ============================================
 // Buzzer Functions
@@ -128,10 +132,15 @@ void updateBuzzer() {
 }
 
 // ============================================
-// Coin Interrupt - Optimized for NO mode
+// Coin Interrupt - Optimized for NO mode with noise filtering
 // ============================================
 void IRAM_ATTR coinInserted() {
   unsigned long currentTime = millis();
+  
+  // Ignore pulses in first 2 seconds (power-on noise)
+  if (currentTime < NOISE_FILTER_TIME) {
+    return;
+  }
   
   // Debounce check
   if (currentTime - lastPulseTime < DEBOUNCE_TIME) {
@@ -207,6 +216,7 @@ void setup() {
   // Web routes
   server.on("/", handleRoot);
   server.on("/upload", HTTP_POST, handleUploadResponse, handleFileUpload);
+  server.on("/upload_proxy", HTTP_POST, handleUploadProxy, handleFileUploadProxy);  // NEW: File proxy
   server.on("/status", handleStatus);
   server.on("/claim", handleClaimCredits);  // NEW: Claim pending credits
   server.on("/print", handlePrint);
@@ -219,14 +229,19 @@ void setup() {
   Serial.println("⚙️  Coin Acceptor Settings:");
   Serial.println("   Speed: MEDIUM");
   Serial.println("   Mode: NO (Normally Open)");
+  Serial.println("   Wire: COUNTER (Gray) → Pin 32");
   Serial.println("   Pin: GPIO 32");
-  Serial.println("   Sensitivity: Change to NOM!");
+  Serial.println("   Noise Filter: 2 seconds");
   Serial.println("=================================");
   
   // Startup beeps
   playBuzzer(2);
   
+  // Record startup time for noise filtering
+  systemStartTime = millis();
+  
   Serial.println("✅ System Ready!");
+  Serial.println("⏳ Waiting 2 seconds for coin acceptor to stabilize...");
   Serial.println("=================================\n");
 }
 
@@ -299,8 +314,14 @@ void checkCoinType() {
       Serial.println("\n⚠️  INVALID COIN DETECTED");
       Serial.print("   Pulses: ");
       Serial.println(detectedPulses);
-      Serial.println("   Expected: 1, 5, or 10");
-      Serial.println("   👉 Change coin acceptor to NOM setting\n");
+      Serial.println("   Expected: 1 (₱1), 5 (₱5), or 10 (₱10)");
+      Serial.println("");
+      Serial.println("   � TROUBLESHOOTING:");
+      Serial.println("   1. Use COUNTER (Gray wire) → Pin 32");
+      Serial.println("   2. Check coin acceptor is set to NO mode");
+      Serial.println("   3. Try different coins (clean ones)");
+      Serial.println("   4. Check if coin path is clear");
+      Serial.println("");
       
       // Error beep
       if (buzzerState == BUZZER_IDLE) {
@@ -524,7 +545,8 @@ void handleRoot() {
       <div class="upload-area" onclick="document.getElementById('fileInput').click()">
         <div class="upload-icon">📄</div>
         <h3>Click to Upload Document</h3>
-        <p>PDF, DOCX, Images supported</p>
+        <p>PDF files recommended (max 50KB)</p>
+        <p style="font-size: 0.9em; color: #999; margin-top: 5px;">DOCX/Images: May have printing issues</p>
         <input type="file" id="fileInput" name="file" accept=".pdf,.doc,.docx,.jpg,.png" onchange="handleFileSelect(event)">
       </div>
       <div class="file-name" id="fileName"></div>
@@ -603,37 +625,51 @@ void handleRoot() {
     function uploadFile() {
       if (!uploadedFile) return;
 
-      const formData = new FormData();
-      formData.append('file', uploadedFile);
+      // Get session ID first
+      fetch('/status')
+        .then(r => r.json())
+        .then(statusData => {
+          const sessionId = statusData.session;
+          
+          const formData = new FormData();
+          formData.append('file', uploadedFile);
+          formData.append('session_id', sessionId);
 
-      const uploadBtn = document.getElementById('uploadBtn');
-      uploadBtn.disabled = true;
-      uploadBtn.innerHTML = '<div class="loading"></div>';
-      showStatus('Uploading...', 'info');
+          const uploadBtn = document.getElementById('uploadBtn');
+          uploadBtn.disabled = true;
+          uploadBtn.innerHTML = '<div class="loading"></div>';
+          showStatus('Uploading to server...', 'info');
 
-      fetch('/upload', {
-        method: 'POST',
-        body: formData
-      })
-      .then(r => r.json())
-      .then(data => {
-        if (data.success) {
-          requiredCredits = data.pages;
-          showStatus('✅ File uploaded! ' + data.pages + ' pages = ₱' + data.pages, 'success');
-          document.getElementById('printBtn').disabled = false;
-          checkPrintButton();
-        } else {
-          showStatus('❌ Upload failed: ' + data.error, 'error');
-        }
-      })
-      .catch(err => {
-        showStatus('❌ Upload error', 'error');
-        console.error(err);
-      })
-      .finally(() => {
-        uploadBtn.disabled = false;
-        uploadBtn.textContent = 'Upload File';
-      });
+          // Upload to ESP32 first (phone can reach this)
+          // ESP32 will forward to Orange Pi
+          fetch('/upload_proxy', {
+            method: 'POST',
+            body: formData
+          })
+          .then(r => r.json())
+          .then(data => {
+            if (data.success) {
+              requiredCredits = data.pages;
+              showStatus('✅ File uploaded! ' + data.pages + ' pages = ₱' + data.cost, 'success');
+              document.getElementById('printBtn').disabled = false;
+              checkPrintButton();
+            } else {
+              showStatus('❌ Upload failed: ' + data.error, 'error');
+            }
+          })
+          .catch(err => {
+            showStatus('❌ Upload error - Check connection', 'error');
+            console.error(err);
+          })
+          .finally(() => {
+            uploadBtn.disabled = false;
+            uploadBtn.textContent = 'Upload File';
+          });
+        })
+        .catch(err => {
+          showStatus('❌ Session error', 'error');
+          console.error(err);
+        });
     }
 
     function printFile() {
@@ -745,6 +781,224 @@ void handleUploadResponse() {
   http.end();
 }
 
+// NEW: Proxy upload handlers - Forward file from phone to Orange Pi
+String proxyUploadedFile = "";
+size_t proxyFileSize = 0;
+#define PROXY_BUFFER_SIZE 100000  // 100KB buffer (safe for ESP32)
+uint8_t* proxyFileBuffer = nullptr;
+
+void handleFileUploadProxy() {
+  HTTPUpload& upload = server.upload();
+  
+  if (upload.status == UPLOAD_FILE_START) {
+    proxyUploadedFile = upload.filename;
+    proxyFileSize = 0;
+    Serial.println("\n📤 Proxying file: " + proxyUploadedFile);
+    
+    // Allocate smaller buffer that ESP32 can handle
+    if (proxyFileBuffer != nullptr) {
+      free(proxyFileBuffer);
+      proxyFileBuffer = nullptr;
+    }
+    
+    proxyFileBuffer = (uint8_t*)malloc(PROXY_BUFFER_SIZE);
+    
+    if (proxyFileBuffer == nullptr) {
+      Serial.println("❌ Memory allocation failed!");
+      Serial.print("   Free heap: ");
+      Serial.println(ESP.getFreeHeap());
+    } else {
+      Serial.print("✅ Buffer allocated: ");
+      Serial.print(PROXY_BUFFER_SIZE / 1024);
+      Serial.println(" KB");
+    }
+    
+  } else if (upload.status == UPLOAD_FILE_WRITE) {
+    // Accumulate file data
+    if (proxyFileBuffer != nullptr && (proxyFileSize + upload.currentSize) < PROXY_BUFFER_SIZE) {
+      memcpy(proxyFileBuffer + proxyFileSize, upload.buf, upload.currentSize);
+      proxyFileSize += upload.currentSize;
+      Serial.print(".");
+    } else if (proxyFileBuffer != nullptr) {
+      Serial.println("\n⚠️  File too large! Max 100KB");
+      Serial.print("   Current size: ");
+      Serial.print(proxyFileSize / 1024);
+      Serial.println(" KB");
+    }
+    
+  } else if (upload.status == UPLOAD_FILE_END) {
+    Serial.println();
+    Serial.print("📦 File size: ");
+    Serial.print(proxyFileSize);
+    Serial.print(" bytes (");
+    Serial.print(proxyFileSize / 1024);
+    Serial.println(" KB)");
+  }
+}
+
+void handleUploadProxy() {
+  String clientIP = server.client().remoteIP().toString();
+  String sessionID = sessionIPs[clientIP];
+  
+  if (sessionID == "") {
+    server.send(400, "application/json", "{\"success\":false,\"error\":\"No session\"}");
+    if (proxyFileBuffer != nullptr) {
+      free(proxyFileBuffer);
+      proxyFileBuffer = nullptr;
+    }
+    return;
+  }
+  
+  if (proxyFileBuffer == nullptr || proxyFileSize == 0) {
+    server.send(400, "application/json", "{\"success\":false,\"error\":\"No file data\"}");
+    return;
+  }
+  
+  // Forward to Orange Pi
+  Serial.println("📡 Forwarding file to Orange Pi...");
+  Serial.print("   Session: ");
+  Serial.println(sessionID);
+  Serial.print("   File: ");
+  Serial.println(proxyUploadedFile);
+  
+  HTTPClient http;
+  http.setTimeout(30000);  // 30 second timeout for file upload
+  http.begin(String(FLASK_SERVER) + "/upload");
+  
+  // Create multipart form data
+  String boundary = "----WebKitFormBoundary7MA4YWxkTrZu0gW";
+  String contentType = "multipart/form-data; boundary=" + boundary;
+  http.addHeader("Content-Type", contentType);
+  
+  // Build multipart body header
+  String header = "--" + boundary + "\r\n";
+  header += "Content-Disposition: form-data; name=\"session_id\"\r\n\r\n";
+  header += sessionID + "\r\n";
+  header += "--" + boundary + "\r\n";
+  header += "Content-Disposition: form-data; name=\"file\"; filename=\"" + proxyUploadedFile + "\"\r\n";
+  header += "Content-Type: application/octet-stream\r\n\r\n";
+  
+  String footer = "\r\n--" + boundary + "--\r\n";
+  
+  // Calculate total size
+  size_t totalSize = header.length() + proxyFileSize + footer.length();
+  
+  Serial.print("📊 Building POST body: ");
+  Serial.print(totalSize);
+  Serial.print(" bytes (");
+  Serial.print(totalSize / 1024);
+  Serial.println(" KB)");
+  Serial.print("   Free heap before: ");
+  Serial.println(ESP.getFreeHeap());
+  Serial.print("   Largest free block: ");
+  Serial.println(ESP.getMaxAllocHeap());
+  
+  // Check if we can allocate this much memory
+  if (totalSize > ESP.getMaxAllocHeap()) {
+    Serial.println("❌ File too large for available memory block");
+    Serial.print("   Need: ");
+    Serial.print(totalSize);
+    Serial.print(" bytes, Max block: ");
+    Serial.println(ESP.getMaxAllocHeap());
+    
+    server.send(500, "application/json", "{\"success\":false,\"error\":\"File too large (memory fragmented)\"}");
+    free(proxyFileBuffer);
+    proxyFileBuffer = nullptr;
+    return;
+  }
+  
+  // Allocate buffer for complete POST body
+  uint8_t* postBody = (uint8_t*)malloc(totalSize);
+  if (postBody == nullptr) {
+    Serial.println("❌ Memory allocation failed for POST body");
+    Serial.print("   Needed: ");
+    Serial.print(totalSize);
+    Serial.println(" bytes");
+    Serial.print("   Free heap: ");
+    Serial.println(ESP.getFreeHeap());
+    Serial.print("   Largest block: ");
+    Serial.println(ESP.getMaxAllocHeap());
+    
+    server.send(500, "application/json", "{\"success\":false,\"error\":\"File too large for ESP32 memory\"}");
+    free(proxyFileBuffer);
+    proxyFileBuffer = nullptr;
+    return;
+  }
+  
+  // Assemble complete POST body
+  size_t offset = 0;
+  memcpy(postBody + offset, header.c_str(), header.length());
+  offset += header.length();
+  memcpy(postBody + offset, proxyFileBuffer, proxyFileSize);
+  offset += proxyFileSize;
+  memcpy(postBody + offset, footer.c_str(), footer.length());
+  
+  // Send POST request
+  Serial.print("📤 Sending ");
+  Serial.print(totalSize);
+  Serial.println(" bytes to Orange Pi...");
+  
+  int httpCode = http.POST(postBody, totalSize);
+  
+  // Cleanup
+  free(postBody);
+  free(proxyFileBuffer);
+  proxyFileBuffer = nullptr;
+  
+  Serial.print("   HTTP Code: ");
+  Serial.println(httpCode);
+  
+  // Handle response
+  if (httpCode == 200) {
+    String response = http.getString();
+    Serial.println("✅ Orange Pi response: " + response);
+    
+    // Parse response to get page count
+    StaticJsonDocument<512> doc;
+    DeserializationError error = deserializeJson(doc, response);
+    
+    if (!error && doc["success"] == true) {
+      int pages = doc["pages"] | 1;
+      int cost = pages;  // ₱1 per page
+      int fileId = doc["file_id"] | 0;  // Get file_id from Orange Pi
+      
+      // Store file_id for this session (for printing later)
+      if (fileId > 0) {
+        userFileIDs[sessionID] = fileId;
+      }
+      
+      // Send success response with page count
+      String successResponse = "{\"success\":true,\"pages\":" + String(pages) + 
+                              ",\"cost\":" + String(cost) + 
+                              ",\"file_id\":" + String(fileId) +
+                              ",\"filename\":\"" + proxyUploadedFile + "\"}";
+      server.send(200, "application/json", successResponse);
+      
+      Serial.println("✅ Upload complete!");
+      Serial.print("   File ID: ");
+      Serial.println(fileId);
+      Serial.print("   Pages: ");
+      Serial.println(pages);
+      Serial.print("   Cost: ₱");
+      Serial.println(cost);
+    } else {
+      server.send(200, "application/json", response);
+    }
+  } else {
+    Serial.print("❌ Orange Pi error! HTTP code: ");
+    Serial.println(httpCode);
+    String errorMsg = http.getString();
+    Serial.println("   Error: " + errorMsg);
+    
+    // Send error response
+    String errorResponse = "{\"success\":false,\"error\":\"Orange Pi connection failed\",\"http_code\":" + 
+                          String(httpCode) + "}";
+    server.send(500, "application/json", errorResponse);
+  }
+  
+  http.end();
+}
+
 void handleStatus() {
   // Get client IP address
   String clientIP = server.client().remoteIP().toString();
@@ -820,8 +1074,8 @@ void handlePrint() {
   }
   
   // Check if user has uploaded a file
-  String filename = userFiles[sessionID];
-  if (filename == "") {
+  int fileId = userFileIDs[sessionID];
+  if (fileId == 0) {
     server.send(400, "application/json", "{\"success\":false,\"message\":\"No file uploaded\"}");
     return;
   }
@@ -829,8 +1083,8 @@ void handlePrint() {
   Serial.println("\n📡 Sending print request to Orange Pi...");
   Serial.print("   Session: ");
   Serial.println(sessionID);
-  Serial.print("   File: ");
-  Serial.println(filename);
+  Serial.print("   File ID: ");
+  Serial.println(fileId);
   Serial.print("   Credits: ₱");
   Serial.println(userCredits[sessionID]);
   
@@ -841,7 +1095,7 @@ void handlePrint() {
   
   StaticJsonDocument<300> doc;
   doc["session_id"] = sessionID;
-  doc["filename"] = filename;
+  doc["file_id"] = fileId;  // Send file_id instead of filename
   doc["credits"] = userCredits[sessionID];
   
   String requestBody;
