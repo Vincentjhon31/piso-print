@@ -826,8 +826,7 @@ size_t proxyBytesReceived = 0;
 #define STREAM_CHUNK_SIZE 8192  // 8KB chunks
 uint8_t streamBuffer[STREAM_CHUNK_SIZE];
 
-// HTTP client for streaming
-HTTPClient* streamHTTP = nullptr;
+// WiFi client for streaming
 WiFiClient* streamClient = nullptr;
 bool streamActive = false;
 
@@ -848,27 +847,51 @@ void handleFileUploadProxy() {
     Serial.print("   Session: ");
     Serial.println(proxySessionID);
     
-    // Start HTTP connection to Orange Pi
-    if (streamHTTP != nullptr) {
-      delete streamHTTP;
-      streamHTTP = nullptr;
+    // Connect to Orange Pi directly using WiFiClient
+    if (streamClient != nullptr) {
+      delete streamClient;
+      streamClient = nullptr;
     }
     
-    streamHTTP = new HTTPClient();
     streamClient = new WiFiClient();
     
-    // Begin streaming upload to Orange Pi
-    String url = String(FLASK_SERVER) + "/upload_stream";
-    streamHTTP->begin(*streamClient, url);
-    streamHTTP->setTimeout(60000);  // 60 second timeout
-    streamHTTP->addHeader("Content-Type", "application/octet-stream");
-    streamHTTP->addHeader("X-Filename", proxyUploadedFile);
-    streamHTTP->addHeader("X-Session-ID", proxySessionID);
-    streamHTTP->addHeader("Transfer-Encoding", "chunked");
+    // Extract host and port from FLASK_SERVER
+    // Format: "http://192.168.22.3:5000"
+    String host = "192.168.22.3";
+    int port = 5000;
     
-    // Start POST request
-    streamHTTP->beginRequest();
-    streamHTTP->POST("");  // Empty body - we'll send chunks
+    Serial.print("🔌 Connecting to Orange Pi: ");
+    Serial.print(host);
+    Serial.print(":");
+    Serial.println(port);
+    
+    if (!streamClient->connect(host.c_str(), port)) {
+      Serial.println("❌ Connection failed!");
+      delete streamClient;
+      streamClient = nullptr;
+      streamActive = false;
+      return;
+    }
+    
+    Serial.println("✅ Connected! Sending HTTP headers...");
+    
+    // Send HTTP POST headers manually
+    streamClient->print("POST /upload_stream HTTP/1.1\r\n");
+    streamClient->print("Host: ");
+    streamClient->print(host);
+    streamClient->print(":");
+    streamClient->print(port);
+    streamClient->print("\r\n");
+    streamClient->print("Content-Type: application/octet-stream\r\n");
+    streamClient->print("X-Filename: ");
+    streamClient->print(proxyUploadedFile);
+    streamClient->print("\r\n");
+    streamClient->print("X-Session-ID: ");
+    streamClient->print(proxySessionID);
+    streamClient->print("\r\n");
+    streamClient->print("Transfer-Encoding: chunked\r\n");
+    streamClient->print("Connection: close\r\n");
+    streamClient->print("\r\n");
     
     streamActive = true;
     
@@ -876,9 +899,16 @@ void handleFileUploadProxy() {
     
   } else if (upload.status == UPLOAD_FILE_WRITE) {
     // Stream chunk to Orange Pi
-    if (streamActive && streamHTTP != nullptr) {
-      // Forward chunk directly (NO BUFFERING!)
+    if (streamActive && streamClient != nullptr && streamClient->connected()) {
+      // Send chunk size in hex (HTTP chunked encoding)
+      streamClient->printf("%X\r\n", upload.currentSize);
+      
+      // Send chunk data
       streamClient->write(upload.buf, upload.currentSize);
+      
+      // Send chunk trailer
+      streamClient->print("\r\n");
+      
       proxyBytesReceived += upload.currentSize;
       
       // Progress indicator
@@ -895,7 +925,11 @@ void handleFileUploadProxy() {
     }
     
   } else if (upload.status == UPLOAD_FILE_END) {
-    // Finalize streaming
+    // Finalize streaming - send final chunk marker
+    if (streamActive && streamClient != nullptr && streamClient->connected()) {
+      streamClient->print("0\r\n\r\n");  // End of chunked encoding
+    }
+    
     Serial.println();
     proxyFileSize = proxyBytesReceived;
     Serial.print("📦 Total file size: ");
@@ -910,12 +944,10 @@ void handleFileUploadProxy() {
     Serial.println("\n⚠️  Upload aborted by client");
     streamActive = false;
     
-    if (streamHTTP != nullptr) {
-      streamHTTP->end();
-      delete streamHTTP;
-      streamHTTP = nullptr;
-    }
     if (streamClient != nullptr) {
+      if (streamClient->connected()) {
+        streamClient->print("0\r\n\r\n");  // Try to end gracefully
+      }
       streamClient->stop();
       delete streamClient;
       streamClient = nullptr;
@@ -924,25 +956,73 @@ void handleFileUploadProxy() {
 }
 
 void handleUploadProxy() {
-  // Finalize streaming and get response
-  if (streamHTTP == nullptr) {
-    server.send(500, "application/json", "{\"success\":false,\"error\":\"Streaming not initialized\"}");
+  // Wait for response from Orange Pi
+  if (streamClient == nullptr || !streamClient->connected()) {
+    server.send(500, "application/json", "{\"success\":false,\"error\":\"Streaming connection lost\"}");
     return;
   }
   
-  Serial.println("📡 Finalizing stream to Orange Pi...");
+  Serial.println("📡 Reading response from Orange Pi...");
   
-  // End the POST request and get response
-  int httpCode = streamHTTP->endRequest();
+  // Wait for response (with timeout)
+  unsigned long timeout = millis() + 10000;  // 10 second timeout
+  while (streamClient->available() == 0) {
+    if (millis() > timeout) {
+      Serial.println("❌ Response timeout!");
+      streamClient->stop();
+      delete streamClient;
+      streamClient = nullptr;
+      server.send(500, "application/json", "{\"success\":false,\"error\":\"Response timeout\"}");
+      return;
+    }
+    delay(10);
+  }
+  
+  // Read HTTP response
+  String response = "";
+  bool headersEnded = false;
+  String httpCode = "";
+  
+  // Read status line
+  if (streamClient->available()) {
+    String statusLine = streamClient->readStringUntil('\n');
+    Serial.print("   Status: ");
+    Serial.println(statusLine);
+    
+    // Extract HTTP code (e.g., "HTTP/1.1 200 OK")
+    int firstSpace = statusLine.indexOf(' ');
+    int secondSpace = statusLine.indexOf(' ', firstSpace + 1);
+    if (firstSpace > 0 && secondSpace > firstSpace) {
+      httpCode = statusLine.substring(firstSpace + 1, secondSpace);
+    }
+  }
+  
+  // Read headers until blank line
+  while (streamClient->available() && !headersEnded) {
+    String line = streamClient->readStringUntil('\n');
+    line.trim();
+    if (line.length() == 0) {
+      headersEnded = true;
+    }
+  }
+  
+  // Read response body (JSON)
+  while (streamClient->available()) {
+    response += (char)streamClient->read();
+  }
   
   Serial.print("   HTTP Code: ");
   Serial.println(httpCode);
+  Serial.print("   Response: ");
+  Serial.println(response);
   
-  if (httpCode == 200) {
-    String response = streamHTTP->getString();
-    Serial.println("✅ Orange Pi response: " + response);
-    
-    // Parse response
+  // Cleanup
+  streamClient->stop();
+  delete streamClient;
+  streamClient = nullptr;
+  
+  // Parse and forward response
+  if (httpCode == "200") {
     StaticJsonDocument<512> doc;
     DeserializationError error = deserializeJson(doc, response);
     
@@ -975,28 +1055,13 @@ void handleUploadProxy() {
       Serial.print("   Cost: ₱");
       Serial.println(cost);
     } else {
+      // Forward raw response if parsing failed
       server.send(200, "application/json", response);
     }
   } else {
-    Serial.print("❌ Orange Pi error! HTTP code: ");
-    Serial.println(httpCode);
-    String errorMsg = streamHTTP->errorToString(httpCode);
-    Serial.println("   Error: " + errorMsg);
-    
-    String errorResponse = "{\"success\":false,\"error\":\"Orange Pi connection failed\",\"http_code\":" + 
-                          String(httpCode) + "}";
+    Serial.println("❌ Orange Pi error!");
+    String errorResponse = "{\"success\":false,\"error\":\"Upload failed\",\"http_code\":" + httpCode + "}";
     server.send(500, "application/json", errorResponse);
-  }
-  
-  // Cleanup
-  streamHTTP->end();
-  delete streamHTTP;
-  streamHTTP = nullptr;
-  
-  if (streamClient != nullptr) {
-    streamClient->stop();
-    delete streamClient;
-    streamClient = nullptr;
   }
   
   Serial.print("   Free heap after: ");
