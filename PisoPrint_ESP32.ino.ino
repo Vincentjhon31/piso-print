@@ -16,7 +16,7 @@ const char* STA_SSID = "HomeUltera_E73DD4";      // Change this to your router's
 const char* STA_PASS = "Ultera9wiid2";   // Change this to your router's password
 
 // Orange Pi Flask Server
-const char* FLASK_SERVER = "http://192.168.22.2:5000";  // Orange Pi IP on your network
+const char* FLASK_SERVER = "http://192.168.22.3:5000";  // Orange Pi IP on your network
 
 // Pin Definitions
 const int COIN_PIN = 32;  // D32 - Coin acceptor (NO mode)
@@ -545,8 +545,8 @@ void handleRoot() {
       <div class="upload-area" onclick="document.getElementById('fileInput').click()">
         <div class="upload-icon">📄</div>
         <h3>Click to Upload Document</h3>
-        <p>PDF files recommended (max 50KB)</p>
-        <p style="font-size: 0.9em; color: #999; margin-top: 5px;">DOCX/Images: May have printing issues</p>
+        <p>PDF files recommended (max 200KB)</p>
+        <p style="font-size: 0.9em; color: #999; margin-top: 5px;">DOCX: Auto-converted to PDF</p>
         <input type="file" id="fileInput" name="file" accept=".pdf,.doc,.docx,.jpg,.png" onchange="handleFileSelect(event)">
       </div>
       <div class="file-name" id="fileName"></div>
@@ -561,6 +561,26 @@ void handleRoot() {
     let uploadedFile = null;
     let requiredCredits = 0;
     let lastKnownCredits = 0;
+
+    // Audio notification for credit claim
+    function playClaimSound() {
+      // Create a simple beep sound using Web Audio API
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator.frequency.value = 800; // 800Hz beep
+      oscillator.type = 'sine';
+      
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+      
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.5);
+    }
 
     function updateCredits() {
       fetch('/status')
@@ -601,7 +621,22 @@ void handleRoot() {
         .then(r => r.json())
         .then(data => {
           if (data.success) {
-            showStatus('✅ Claimed ₱' + data.claimed + '!', 'success');
+            // Play sound notification
+            playClaimSound();
+            
+            // Show success message with animation
+            showStatus('✅ Claimed ₱' + data.claimed + '! 🎉', 'success');
+            
+            // Visual feedback - flash the credits display
+            const creditsDiv = document.querySelector('.credits');
+            creditsDiv.style.transform = 'scale(1.05)';
+            creditsDiv.style.boxShadow = '0 0 30px rgba(76, 175, 80, 0.6)';
+            
+            setTimeout(() => {
+              creditsDiv.style.transform = 'scale(1)';
+              creditsDiv.style.boxShadow = '0 5px 15px rgba(102, 126, 234, 0.3)';
+            }, 500);
+            
             updateCredits();
           } else {
             showStatus('❌ ' + data.message, 'error');
@@ -784,7 +819,7 @@ void handleUploadResponse() {
 // NEW: Proxy upload handlers - Forward file from phone to Orange Pi
 String proxyUploadedFile = "";
 size_t proxyFileSize = 0;
-#define PROXY_BUFFER_SIZE 100000  // 100KB buffer (safe for ESP32)
+#define PROXY_BUFFER_SIZE 200000  // 200KB buffer (increased capacity)
 uint8_t* proxyFileBuffer = nullptr;
 
 void handleFileUploadProxy() {
@@ -807,6 +842,8 @@ void handleFileUploadProxy() {
       Serial.println("❌ Memory allocation failed!");
       Serial.print("   Free heap: ");
       Serial.println(ESP.getFreeHeap());
+      Serial.print("   Max allocatable block: ");
+      Serial.println(ESP.getMaxAllocHeap());
     } else {
       Serial.print("✅ Buffer allocated: ");
       Serial.print(PROXY_BUFFER_SIZE / 1024);

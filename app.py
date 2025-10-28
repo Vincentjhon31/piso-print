@@ -261,6 +261,44 @@ def count_file_pages(filepath, extension):
     else:
         return 1
 
+def convert_docx_to_pdf(docx_path):
+    """Convert DOCX to PDF using LibreOffice"""
+    try:
+        output_dir = os.path.dirname(docx_path)
+        
+        # Use LibreOffice to convert DOCX to PDF
+        result = subprocess.run([
+            'soffice',
+            '--headless',
+            '--convert-to', 'pdf',
+            '--outdir', output_dir,
+            docx_path
+        ], capture_output=True, text=True, timeout=30)
+        
+        if result.returncode == 0:
+            # Generate PDF path
+            pdf_path = os.path.splitext(docx_path)[0] + '.pdf'
+            
+            if os.path.exists(pdf_path):
+                logger.info(f"✅ Converted DOCX to PDF: {pdf_path}")
+                return pdf_path
+            else:
+                logger.error(f"PDF not created: {pdf_path}")
+                return None
+        else:
+            logger.error(f"LibreOffice conversion failed: {result.stderr}")
+            return None
+            
+    except subprocess.TimeoutExpired:
+        logger.error("DOCX conversion timeout (30s)")
+        return None
+    except FileNotFoundError:
+        logger.error("LibreOffice (soffice) not found. Install: sudo apt install libreoffice-writer")
+        return None
+    except Exception as e:
+        logger.error(f"DOCX conversion error: {e}")
+        return None
+
 def log_transaction(session_id, trans_type, amount, description):
     """Log transaction to database"""
     db = get_db()
@@ -483,6 +521,18 @@ def print_file():
         # Print the file using CUPS
         try:
             filepath = file_record['file_path']
+            file_ext = file_record['file_type'].lower()
+            
+            # Convert DOCX to PDF if needed
+            if file_ext in ['doc', 'docx']:
+                logger.info(f"Converting DOCX to PDF: {filepath}")
+                pdf_path = convert_docx_to_pdf(filepath)
+                
+                if pdf_path and os.path.exists(pdf_path):
+                    filepath = pdf_path
+                    logger.info(f"Using converted PDF: {filepath}")
+                else:
+                    logger.warning("DOCX conversion failed, attempting to print original file")
             
             if conn_cups:
                 job_id = conn_cups.printFile(
