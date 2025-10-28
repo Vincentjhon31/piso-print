@@ -442,6 +442,92 @@ def upload_file():
             'error': str(e)
         }), 500
 
+# Streaming upload endpoint for large files (unlimited size)
+@app.route('/upload_stream', methods=['POST'])
+def upload_stream():
+    try:
+        # Get headers from ESP32
+        filename = request.headers.get('X-Filename', 'unknown_file.pdf')
+        session_id = request.headers.get('X-Session-ID', f"USER_{datetime.now().strftime('%Y%m%d%H%M%S')}")
+        
+        logger.info(f"Streaming upload started: {filename} - Session: {session_id}")
+        
+        # Secure filename
+        original_filename = filename
+        filename = secure_filename(filename)
+        
+        # Add timestamp to avoid conflicts
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        name, ext = os.path.splitext(filename)
+        filename = f"{name}_{timestamp}{ext}"
+        
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        
+        # Stream to disk chunk-by-chunk (NO BUFFERING!)
+        bytes_written = 0
+        logger.info("Writing chunks to disk...")
+        
+        with open(filepath, 'wb') as f:
+            while True:
+                chunk = request.stream.read(8192)  # 8KB chunks
+                if not chunk:
+                    break
+                f.write(chunk)
+                bytes_written += len(chunk)
+                
+                # Progress log every 100KB
+                if bytes_written % 102400 == 0:
+                    logger.info(f"  Written: {bytes_written // 1024} KB")
+        
+        logger.info(f"Streaming complete: {bytes_written} bytes ({bytes_written // 1024} KB)")
+        
+        # Verify file was created
+        if not os.path.exists(filepath):
+            raise Exception("File not created after streaming")
+        
+        file_size = os.path.getsize(filepath)
+        file_ext = ext[1:] if ext else 'unknown'
+        
+        logger.info(f"File size on disk: {file_size} bytes")
+        
+        # Count pages
+        pages = count_file_pages(filepath, file_ext)
+        cost = pages * PRICE_PER_PAGE
+        
+        # Save to database
+        db = get_db()
+        cursor = db.cursor()
+        
+        # Ensure user exists
+        get_or_create_user(session_id)
+        
+        cursor.execute('''
+            INSERT INTO files (session_id, filename, original_name, file_path, file_size, pages, file_type)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        ''', (session_id, filename, original_filename, filepath, file_size, pages, file_ext))
+        
+        db.commit()
+        file_id = cursor.lastrowid
+        db.close()
+        
+        logger.info(f"Streaming upload complete: {original_filename} ({pages} pages) - File ID: {file_id}")
+        
+        return jsonify({
+            'success': True,
+            'file_id': file_id,
+            'filename': filename,
+            'pages': pages,
+            'cost': cost,
+            'message': f'{pages} page(s) = ₱{cost}'
+        })
+        
+    except Exception as e:
+        logger.error(f"Streaming upload error: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 @app.route('/print', methods=['POST'])
 def print_file():
     """Handle print request from ESP32"""

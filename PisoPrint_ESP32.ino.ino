@@ -545,7 +545,7 @@ void handleRoot() {
       <div class="upload-area" onclick="document.getElementById('fileInput').click()">
         <div class="upload-icon">📄</div>
         <h3>Click to Upload Document</h3>
-        <p>PDF files recommended (max 200KB)</p>
+        <p>PDF files recommended (max 10MB)</p>
         <p style="font-size: 0.9em; color: #999; margin-top: 5px;">DOCX: Auto-converted to PDF</p>
         <input type="file" id="fileInput" name="file" accept=".pdf,.doc,.docx,.jpg,.png" onchange="handleFileSelect(event)">
       </div>
@@ -816,204 +816,160 @@ void handleUploadResponse() {
   http.end();
 }
 
-// NEW: Proxy upload handlers - Forward file from phone to Orange Pi
+// NEW: Proxy upload handlers - STREAMING MODE (unlimited file size)
 String proxyUploadedFile = "";
+String proxySessionID = "";
 size_t proxyFileSize = 0;
-#define PROXY_BUFFER_SIZE 200000  // 200KB buffer (increased capacity)
-uint8_t* proxyFileBuffer = nullptr;
+size_t proxyBytesReceived = 0;
+
+// Small buffer for streaming (only 8KB needed!)
+#define STREAM_CHUNK_SIZE 8192  // 8KB chunks
+uint8_t streamBuffer[STREAM_CHUNK_SIZE];
+
+// HTTP client for streaming
+HTTPClient* streamHTTP = nullptr;
+WiFiClient* streamClient = nullptr;
+bool streamActive = false;
 
 void handleFileUploadProxy() {
   HTTPUpload& upload = server.upload();
   
   if (upload.status == UPLOAD_FILE_START) {
+    // Initialize streaming
     proxyUploadedFile = upload.filename;
     proxyFileSize = 0;
-    Serial.println("\n📤 Proxying file: " + proxyUploadedFile);
+    proxyBytesReceived = 0;
     
-    // Allocate smaller buffer that ESP32 can handle
-    if (proxyFileBuffer != nullptr) {
-      free(proxyFileBuffer);
-      proxyFileBuffer = nullptr;
+    // Get session ID
+    String clientIP = server.client().remoteIP().toString();
+    proxySessionID = sessionIPs[clientIP];
+    
+    Serial.println("\n📤 Streaming file: " + proxyUploadedFile);
+    Serial.print("   Session: ");
+    Serial.println(proxySessionID);
+    
+    // Start HTTP connection to Orange Pi
+    if (streamHTTP != nullptr) {
+      delete streamHTTP;
+      streamHTTP = nullptr;
     }
     
-    proxyFileBuffer = (uint8_t*)malloc(PROXY_BUFFER_SIZE);
+    streamHTTP = new HTTPClient();
+    streamClient = new WiFiClient();
     
-    if (proxyFileBuffer == nullptr) {
-      Serial.println("❌ Memory allocation failed!");
-      Serial.print("   Free heap: ");
-      Serial.println(ESP.getFreeHeap());
-      Serial.print("   Max allocatable block: ");
-      Serial.println(ESP.getMaxAllocHeap());
-    } else {
-      Serial.print("✅ Buffer allocated: ");
-      Serial.print(PROXY_BUFFER_SIZE / 1024);
-      Serial.println(" KB");
-    }
+    // Begin streaming upload to Orange Pi
+    String url = String(FLASK_SERVER) + "/upload_stream";
+    streamHTTP->begin(*streamClient, url);
+    streamHTTP->setTimeout(60000);  // 60 second timeout
+    streamHTTP->addHeader("Content-Type", "application/octet-stream");
+    streamHTTP->addHeader("X-Filename", proxyUploadedFile);
+    streamHTTP->addHeader("X-Session-ID", proxySessionID);
+    streamHTTP->addHeader("Transfer-Encoding", "chunked");
+    
+    // Start POST request
+    streamHTTP->beginRequest();
+    streamHTTP->POST("");  // Empty body - we'll send chunks
+    
+    streamActive = true;
+    
+    Serial.println("✅ Streaming started");
     
   } else if (upload.status == UPLOAD_FILE_WRITE) {
-    // Accumulate file data
-    if (proxyFileBuffer != nullptr && (proxyFileSize + upload.currentSize) < PROXY_BUFFER_SIZE) {
-      memcpy(proxyFileBuffer + proxyFileSize, upload.buf, upload.currentSize);
-      proxyFileSize += upload.currentSize;
-      Serial.print(".");
-    } else if (proxyFileBuffer != nullptr) {
-      Serial.println("\n⚠️  File too large! Max 100KB");
-      Serial.print("   Current size: ");
-      Serial.print(proxyFileSize / 1024);
-      Serial.println(" KB");
+    // Stream chunk to Orange Pi
+    if (streamActive && streamHTTP != nullptr) {
+      // Forward chunk directly (NO BUFFERING!)
+      streamClient->write(upload.buf, upload.currentSize);
+      proxyBytesReceived += upload.currentSize;
+      
+      // Progress indicator
+      if (proxyBytesReceived % 10240 == 0) {  // Every 10KB
+        Serial.print(".");
+      }
+      
+      if (proxyBytesReceived % 102400 == 0) {  // Every 100KB
+        Serial.println();
+        Serial.print("   Streamed: ");
+        Serial.print(proxyBytesReceived / 1024);
+        Serial.println(" KB");
+      }
     }
     
   } else if (upload.status == UPLOAD_FILE_END) {
+    // Finalize streaming
     Serial.println();
-    Serial.print("📦 File size: ");
+    proxyFileSize = proxyBytesReceived;
+    Serial.print("📦 Total file size: ");
     Serial.print(proxyFileSize);
     Serial.print(" bytes (");
     Serial.print(proxyFileSize / 1024);
     Serial.println(" KB)");
+    
+    streamActive = false;
+  } else if (upload.status == UPLOAD_FILE_ABORTED) {
+    // Upload cancelled
+    Serial.println("\n⚠️  Upload aborted by client");
+    streamActive = false;
+    
+    if (streamHTTP != nullptr) {
+      streamHTTP->end();
+      delete streamHTTP;
+      streamHTTP = nullptr;
+    }
+    if (streamClient != nullptr) {
+      streamClient->stop();
+      delete streamClient;
+      streamClient = nullptr;
+    }
   }
 }
 
 void handleUploadProxy() {
-  String clientIP = server.client().remoteIP().toString();
-  String sessionID = sessionIPs[clientIP];
-  
-  if (sessionID == "") {
-    server.send(400, "application/json", "{\"success\":false,\"error\":\"No session\"}");
-    if (proxyFileBuffer != nullptr) {
-      free(proxyFileBuffer);
-      proxyFileBuffer = nullptr;
-    }
+  // Finalize streaming and get response
+  if (streamHTTP == nullptr) {
+    server.send(500, "application/json", "{\"success\":false,\"error\":\"Streaming not initialized\"}");
     return;
   }
   
-  if (proxyFileBuffer == nullptr || proxyFileSize == 0) {
-    server.send(400, "application/json", "{\"success\":false,\"error\":\"No file data\"}");
-    return;
-  }
+  Serial.println("📡 Finalizing stream to Orange Pi...");
   
-  // Forward to Orange Pi
-  Serial.println("📡 Forwarding file to Orange Pi...");
-  Serial.print("   Session: ");
-  Serial.println(sessionID);
-  Serial.print("   File: ");
-  Serial.println(proxyUploadedFile);
-  
-  HTTPClient http;
-  http.setTimeout(30000);  // 30 second timeout for file upload
-  http.begin(String(FLASK_SERVER) + "/upload");
-  
-  // Create multipart form data
-  String boundary = "----WebKitFormBoundary7MA4YWxkTrZu0gW";
-  String contentType = "multipart/form-data; boundary=" + boundary;
-  http.addHeader("Content-Type", contentType);
-  
-  // Build multipart body header
-  String header = "--" + boundary + "\r\n";
-  header += "Content-Disposition: form-data; name=\"session_id\"\r\n\r\n";
-  header += sessionID + "\r\n";
-  header += "--" + boundary + "\r\n";
-  header += "Content-Disposition: form-data; name=\"file\"; filename=\"" + proxyUploadedFile + "\"\r\n";
-  header += "Content-Type: application/octet-stream\r\n\r\n";
-  
-  String footer = "\r\n--" + boundary + "--\r\n";
-  
-  // Calculate total size
-  size_t totalSize = header.length() + proxyFileSize + footer.length();
-  
-  Serial.print("📊 Building POST body: ");
-  Serial.print(totalSize);
-  Serial.print(" bytes (");
-  Serial.print(totalSize / 1024);
-  Serial.println(" KB)");
-  Serial.print("   Free heap before: ");
-  Serial.println(ESP.getFreeHeap());
-  Serial.print("   Largest free block: ");
-  Serial.println(ESP.getMaxAllocHeap());
-  
-  // Check if we can allocate this much memory
-  if (totalSize > ESP.getMaxAllocHeap()) {
-    Serial.println("❌ File too large for available memory block");
-    Serial.print("   Need: ");
-    Serial.print(totalSize);
-    Serial.print(" bytes, Max block: ");
-    Serial.println(ESP.getMaxAllocHeap());
-    
-    server.send(500, "application/json", "{\"success\":false,\"error\":\"File too large (memory fragmented)\"}");
-    free(proxyFileBuffer);
-    proxyFileBuffer = nullptr;
-    return;
-  }
-  
-  // Allocate buffer for complete POST body
-  uint8_t* postBody = (uint8_t*)malloc(totalSize);
-  if (postBody == nullptr) {
-    Serial.println("❌ Memory allocation failed for POST body");
-    Serial.print("   Needed: ");
-    Serial.print(totalSize);
-    Serial.println(" bytes");
-    Serial.print("   Free heap: ");
-    Serial.println(ESP.getFreeHeap());
-    Serial.print("   Largest block: ");
-    Serial.println(ESP.getMaxAllocHeap());
-    
-    server.send(500, "application/json", "{\"success\":false,\"error\":\"File too large for ESP32 memory\"}");
-    free(proxyFileBuffer);
-    proxyFileBuffer = nullptr;
-    return;
-  }
-  
-  // Assemble complete POST body
-  size_t offset = 0;
-  memcpy(postBody + offset, header.c_str(), header.length());
-  offset += header.length();
-  memcpy(postBody + offset, proxyFileBuffer, proxyFileSize);
-  offset += proxyFileSize;
-  memcpy(postBody + offset, footer.c_str(), footer.length());
-  
-  // Send POST request
-  Serial.print("📤 Sending ");
-  Serial.print(totalSize);
-  Serial.println(" bytes to Orange Pi...");
-  
-  int httpCode = http.POST(postBody, totalSize);
-  
-  // Cleanup
-  free(postBody);
-  free(proxyFileBuffer);
-  proxyFileBuffer = nullptr;
+  // End the POST request and get response
+  int httpCode = streamHTTP->endRequest();
   
   Serial.print("   HTTP Code: ");
   Serial.println(httpCode);
   
-  // Handle response
   if (httpCode == 200) {
-    String response = http.getString();
+    String response = streamHTTP->getString();
     Serial.println("✅ Orange Pi response: " + response);
     
-    // Parse response to get page count
+    // Parse response
     StaticJsonDocument<512> doc;
     DeserializationError error = deserializeJson(doc, response);
     
     if (!error && doc["success"] == true) {
       int pages = doc["pages"] | 1;
-      int cost = pages;  // ₱1 per page
-      int fileId = doc["file_id"] | 0;  // Get file_id from Orange Pi
+      int cost = pages;
+      int fileId = doc["file_id"] | 0;
       
-      // Store file_id for this session (for printing later)
-      if (fileId > 0) {
-        userFileIDs[sessionID] = fileId;
+      // Store file_id for this session
+      if (fileId > 0 && proxySessionID != "") {
+        userFileIDs[proxySessionID] = fileId;
       }
       
-      // Send success response with page count
+      // Send success response
       String successResponse = "{\"success\":true,\"pages\":" + String(pages) + 
                               ",\"cost\":" + String(cost) + 
                               ",\"file_id\":" + String(fileId) +
+                              ",\"size_kb\":" + String(proxyFileSize / 1024) +
                               ",\"filename\":\"" + proxyUploadedFile + "\"}";
       server.send(200, "application/json", successResponse);
       
       Serial.println("✅ Upload complete!");
       Serial.print("   File ID: ");
       Serial.println(fileId);
+      Serial.print("   Size: ");
+      Serial.print(proxyFileSize / 1024);
+      Serial.println(" KB");
       Serial.print("   Pages: ");
       Serial.println(pages);
       Serial.print("   Cost: ₱");
@@ -1024,16 +980,27 @@ void handleUploadProxy() {
   } else {
     Serial.print("❌ Orange Pi error! HTTP code: ");
     Serial.println(httpCode);
-    String errorMsg = http.getString();
+    String errorMsg = streamHTTP->errorToString(httpCode);
     Serial.println("   Error: " + errorMsg);
     
-    // Send error response
     String errorResponse = "{\"success\":false,\"error\":\"Orange Pi connection failed\",\"http_code\":" + 
                           String(httpCode) + "}";
     server.send(500, "application/json", errorResponse);
   }
   
-  http.end();
+  // Cleanup
+  streamHTTP->end();
+  delete streamHTTP;
+  streamHTTP = nullptr;
+  
+  if (streamClient != nullptr) {
+    streamClient->stop();
+    delete streamClient;
+    streamClient = nullptr;
+  }
+  
+  Serial.print("   Free heap after: ");
+  Serial.println(ESP.getFreeHeap());
 }
 
 void handleStatus() {
